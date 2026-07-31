@@ -26,7 +26,8 @@
 2. 验证两个 Agent（或两个独立会话）的记忆互不泄漏。
 3. 验证清空或重建会话后，旧上下文不再影响回答。
 4. 验证记忆中保留了正确的角色和轮次顺序，而不是仅能命中某个关键词。
-5. 保持用例可在当前 Ollama E2E 环境中执行，且不依赖外部数据库或云服务。
+5. 验证无关的中间轮次不会覆盖或截断此前保存的会话信息。
+6. 保持用例可在当前 Ollama E2E 环境中执行，且不依赖外部数据库或云服务。
 
 ## 4. 范围与非目标
 
@@ -147,6 +148,24 @@
 - 最终回复不把 `ORBIT-7319` 声明为当前代号。
 - 所有轮次均由同一会话按顺序完成。
 
+### TC-MEM-005：无关中间轮次不会丢失已有记忆
+
+**优先级：** P1
+
+**目的：** 验证 Agent 不仅能回忆紧邻的上一轮消息，在处理一轮无关任务后仍能使用更早的会话信息。
+
+**步骤：**
+
+1. 第一轮告知 Agent 一个随机项目代号。
+2. 第二轮要求 Agent 计算 `7 + 5`，并确认该轮正常返回 `12`。
+3. 第三轮询问当前项目代号。
+
+**预期结果：**
+
+- 无关的计算轮次能够正常完成，证明会话确实向前推进。
+- 第三轮回复包含第一轮保存的随机项目代号。
+- 第三轮不回复 `UNKNOWN`，无关任务不会覆盖已有记忆。
+
 ## 8. 建议的实现结构
 
 计划新增一个 `ConversationMemoryIT`，复用 `E2eTestSupport` 中的模型配置。可以新增私有辅助
@@ -162,6 +181,7 @@ Failsafe `e2e` profile 下运行。断言应输出实际模型文本，方便 CI
 - `shouldIsolateMemoryBetweenAgents`
 - `shouldForgetFactAfterConversationReset`
 - `shouldUseLatestCorrectionInConversationOrder`
+- `shouldRetainFactAcrossUnrelatedConversationTurn`
 
 ## 9. 运行方式（实现后）
 
@@ -180,7 +200,7 @@ mvn -B -pl agentscope-e2e-tests -am verify -Pe2e
 
 ## 10. 通过标准
 
-- TC-MEM-001 至 TC-MEM-003 必须通过；TC-MEM-004 作为顺序语义回归用例也应纳入 CI。
+- TC-MEM-001 至 TC-MEM-003 必须通过；TC-MEM-004 和 TC-MEM-005 作为多轮语义回归用例也应纳入 CI。
 - 同一提交在相同模型与环境下连续运行三次，不出现由回复措辞导致的偶发失败。
 - 用例只能通过公开 API 验证行为，不能读取 Memory 私有字段或依赖实现细节。
 - 失败日志能够区分模型未响应、记忆未写入、会话泄漏以及重置无效。

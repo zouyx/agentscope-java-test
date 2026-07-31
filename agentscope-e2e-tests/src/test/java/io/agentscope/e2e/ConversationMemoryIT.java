@@ -93,6 +93,25 @@ class ConversationMemoryIT extends E2eTestSupport {
                 () -> "Agent returned the obsolete project code: " + recalled);
     }
 
+    @Test
+    @Timeout(60)
+    void shouldRetainFactAcrossUnrelatedConversationTurn() {
+        String code = uniqueCode("ORBIT");
+        ReActAgent agent = createMemoryAgent("intervening-turn-agent");
+
+        assertText(agent, "Remember that my project code is " + code + ".");
+        String unrelatedReply = assertText(agent, "Reply only with the result of 7 plus 5.");
+        assertTrue(unrelatedReply.contains("12"),
+                () -> "Intervening turn did not complete as requested: " + unrelatedReply);
+
+        String recalled = assertText(agent, "What is my current project code?");
+
+        assertTrue(recalled.contains("CODE=" + code),
+                () -> "Agent lost the code after an unrelated turn: " + recalled);
+        assertFalse(recalled.contains("UNKNOWN"),
+                () -> "Agent forgot the code after an unrelated turn: " + recalled);
+    }
+
     private ReActAgent createMemoryAgent(String name) {
         return ReActAgent.builder()
                 .name(name)
