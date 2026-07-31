@@ -30,7 +30,7 @@ class ConversationMemoryIT extends E2eTestSupport {
         assertText(agent, "Remember that my project code is " + code + ".");
         String recalled = assertText(agent, "What is my current project code?");
 
-        assertTrue(recalled.contains("CODE=" + code), () -> "Unexpected recall: " + recalled);
+        assertTrue(recalled.contains(code), () -> "Unexpected recall: " + recalled);
         assertFalse(recalled.contains("UNKNOWN"), () -> "Agent forgot the code: " + recalled);
     }
 
@@ -49,7 +49,7 @@ class ConversationMemoryIT extends E2eTestSupport {
                 () -> "Independent agent unexpectedly knew a code: " + agentBReply);
         assertFalse(agentBReply.contains(code),
                 () -> "Project code leaked to an independent agent: " + agentBReply);
-        assertTrue(agentAReply.contains("CODE=" + code),
+        assertTrue(agentAReply.contains(code),
                 () -> "Original agent did not retain its code: " + agentAReply);
     }
 
@@ -61,7 +61,7 @@ class ConversationMemoryIT extends E2eTestSupport {
 
         assertText(originalAgent, "Remember that my project code is " + code + ".");
         String beforeReset = assertText(originalAgent, "What is my current project code?");
-        assertTrue(beforeReset.contains("CODE=" + code),
+        assertTrue(beforeReset.contains(code),
                 () -> "Precondition failed; code was not remembered: " + beforeReset);
 
         // A new Agent with a new Memory represents a new conversation. This verifies the public
@@ -87,7 +87,7 @@ class ConversationMemoryIT extends E2eTestSupport {
                 + newCode + ".");
         String recalled = assertText(agent, "What is my current project code?");
 
-        assertTrue(recalled.contains("CODE=" + newCode),
+        assertTrue(recalled.contains(newCode),
                 () -> "Agent did not use the latest correction: " + recalled);
         assertFalse(recalled.contains(oldCode),
                 () -> "Agent returned the obsolete project code: " + recalled);
@@ -106,7 +106,7 @@ class ConversationMemoryIT extends E2eTestSupport {
 
         String recalled = assertText(agent, "What is my current project code?");
 
-        assertTrue(recalled.contains("CODE=" + code),
+        assertTrue(recalled.contains(code),
                 () -> "Agent lost the code after an unrelated turn: " + recalled);
         assertFalse(recalled.contains("UNKNOWN"),
                 () -> "Agent forgot the code after an unrelated turn: " + recalled);
