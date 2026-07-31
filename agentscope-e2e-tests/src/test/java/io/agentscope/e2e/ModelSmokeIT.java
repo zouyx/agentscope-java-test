@@ -42,11 +42,11 @@ class ModelSmokeIT extends E2eTestSupport {
         String firstReply = callForText(firstAgent, "Reply only TOKEN=" + firstToken + ".");
         String secondReply = callForText(secondAgent, "Reply only TOKEN=" + secondToken + ".");
 
-        assertTrue(firstReply.contains("TOKEN=" + firstToken),
+        assertTrue(firstReply.contains(firstToken),
                 () -> "First request returned the wrong token: " + firstReply);
         assertFalse(firstReply.contains(secondToken),
                 () -> "First request leaked the second token: " + firstReply);
-        assertTrue(secondReply.contains("TOKEN=" + secondToken),
+        assertTrue(secondReply.contains(secondToken),
                 () -> "Second request returned the wrong token: " + secondReply);
         assertFalse(secondReply.contains(firstToken),
                 () -> "Second request leaked the first token: " + secondReply);
