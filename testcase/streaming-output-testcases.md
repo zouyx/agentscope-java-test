@@ -9,7 +9,7 @@
 | 被测模块 | `ReActAgent.call(...)` 返回的 Reactor 流式消息发布路径 |
 | 测试级别 | 用户视角端到端集成测试 |
 | 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/StreamingIT.java` |
-| 文档状态 | TC-STREAM-001 已实现；其余为扩展回归设计 |
+| 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围
 
@@ -51,6 +51,7 @@ Agent 和线程安全的事件收集容器。
 | 优先级 | P1 |
 | 用户目标 | 应用将每个非空文本事件按收到顺序展示或累积后，能得到请求要求的标记。 |
 | 前置条件 | 同 TC-STREAM-001。 |
+| 自动化状态 | 已由 `StreamingIT.shouldPreserveRequestedMarkerWhenCombiningStreamedText` 覆盖。 |
 
 **步骤：**
 
@@ -71,6 +72,7 @@ Agent 和线程安全的事件收集容器。
 | 优先级 | P2 |
 | 用户目标 | 流式请求遇到不可达服务时，调用方能收到错误并释放等待，不会无限挂起。 |
 | 前置条件 | 使用仅对此测试生效的不可达本地端点；不影响正常 Ollama 容器。 |
+| 自动化状态 | 已由 `StreamingIT.shouldSignalErrorWhenStreamingServiceIsUnavailable` 覆盖。 |
 
 **步骤：**
 
