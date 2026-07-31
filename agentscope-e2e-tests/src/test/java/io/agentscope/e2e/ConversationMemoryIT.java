@@ -27,7 +27,7 @@ class ConversationMemoryIT extends E2eTestSupport {
         String code = uniqueCode("ORBIT");
         ReActAgent agent = createMemoryAgent("recall-agent");
 
-        assertText(agent, "Remember that my project code is " + code + ". Reply only ACK.");
+        assertText(agent, "Remember that my project code is " + code + ".");
         String recalled = assertText(agent, "What is my current project code?");
 
         assertTrue(recalled.contains("CODE=" + code), () -> "Unexpected recall: " + recalled);
@@ -41,7 +41,7 @@ class ConversationMemoryIT extends E2eTestSupport {
         ReActAgent agentA = createMemoryAgent("isolation-agent-a");
         ReActAgent agentB = createMemoryAgent("isolation-agent-b");
 
-        assertText(agentA, "Remember that my project code is " + code + ". Reply only ACK.");
+        assertText(agentA, "Remember that my project code is " + code + ".");
         String agentBReply = assertText(agentB, "What is my current project code?");
         String agentAReply = assertText(agentA, "What is my current project code?");
 
@@ -59,7 +59,7 @@ class ConversationMemoryIT extends E2eTestSupport {
         String code = uniqueCode("ORBIT");
         ReActAgent originalAgent = createMemoryAgent("reset-agent-before");
 
-        assertText(originalAgent, "Remember that my project code is " + code + ". Reply only ACK.");
+        assertText(originalAgent, "Remember that my project code is " + code + ".");
         String beforeReset = assertText(originalAgent, "What is my current project code?");
         assertTrue(beforeReset.contains("CODE=" + code),
                 () -> "Precondition failed; code was not remembered: " + beforeReset);
@@ -82,9 +82,9 @@ class ConversationMemoryIT extends E2eTestSupport {
         String newCode = uniqueCode("NOVA");
         ReActAgent agent = createMemoryAgent("ordering-agent");
 
-        assertText(agent, "Remember that my project code is " + oldCode + ". Reply only ACK.");
+        assertText(agent, "Remember that my project code is " + oldCode + ".");
         assertText(agent, "The previous code is obsolete. My new project code is "
-                + newCode + ". Reply only ACK.");
+                + newCode + ".");
         String recalled = assertText(agent, "What is my current project code?");
 
         assertTrue(recalled.contains("CODE=" + newCode),
