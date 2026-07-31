@@ -1,5 +1,0 @@
-io/agentscope/e2e/ToolCallingIT.class
-io/agentscope/e2e/ModelSmokeIT.class
-io/agentscope/e2e/ToolCallingIT$AddNumbers.class
-io/agentscope/e2e/StreamingIT.class
-io/agentscope/e2e/E2eTestSupport.class
