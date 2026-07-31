@@ -9,7 +9,7 @@
 | 被测模块 | `Toolkit`、`@Tool` 与 `@ToolParam` 的 Java 工具注册和 Agent 调用路径 |
 | 测试级别 | 用户视角端到端集成测试 |
 | 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ToolCallingIT.java` |
-| 文档状态 | TC-TOOL-001 已实现；其余为扩展回归设计 |
+| 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围
 
@@ -54,6 +54,7 @@
 | 优先级 | P1 |
 | 用户目标 | 注册多个工具时，Agent 不会执行无关且有副作用的工具。 |
 | 前置条件 | 注册 `add_numbers` 与一个记录调用次数的无关工具，例如 `send_notification`。 |
+| 自动化状态 | 已由 `ToolCallingIT.shouldSelectRequestedToolWithoutCallingUnrelatedTool` 覆盖。 |
 
 **步骤：**
 
@@ -74,6 +75,7 @@
 | 优先级 | P1 |
 | 用户目标 | 工具执行失败时，应用不会把操作伪装成成功，调用方能得到可处理的失败。 |
 | 前置条件 | 注册一个被调用即抛出受控 `IllegalStateException` 的内存测试工具。 |
+| 自动化状态 | 已由 `ToolCallingIT.shouldReportToolFailureWithoutClaimingSuccess` 覆盖。 |
 
 **步骤：**
 
@@ -94,6 +96,7 @@
 | 优先级 | P2 |
 | 用户目标 | 用户要求不存在的工具时，不会误触发名称相近的已注册操作。 |
 | 前置条件 | 已注册至少一个有调用计数的工具，用户请求的工具名确认未注册。 |
+| 自动化状态 | 已由 `ToolCallingIT.shouldNotInvokeRegisteredToolForUnknownToolRequest` 覆盖。 |
 
 **步骤：**
 
