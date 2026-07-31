@@ -1,6 +1,6 @@
 package io.agentscope.e2e;
 
-import io.agentscope.core.agent.ReActAgent;
+import io.agentscope.core.agent.react.ReActAgent;
 
 abstract class E2eTestSupport {
     protected static final String MODEL_ID =

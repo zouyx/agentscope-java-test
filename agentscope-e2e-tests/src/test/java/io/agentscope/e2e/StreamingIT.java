@@ -3,10 +3,9 @@ package io.agentscope.e2e;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.agentscope.core.agent.ReActAgent;
+import io.agentscope.core.agent.react.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.runtime.RuntimeContext;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,7 @@ class StreamingIT extends E2eTestSupport {
         // ReActAgent exposes streaming through its reactive call publisher; it does not have a
         // separate stream(...) entry point. Subscribing without collapsing the publisher lets
         // this test observe each message emitted while Ollama is streaming.
-        agent.call(List.of(new UserMessage("Write the numbers 1, 2, and 3.")), RuntimeContext.empty())
+        agent.call(List.of(new UserMessage("Write the numbers 1, 2, and 3.")))
                 .doOnNext(chunks::add)
                 .then()
                 .block();

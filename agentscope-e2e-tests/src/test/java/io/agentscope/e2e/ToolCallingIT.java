@@ -4,10 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.agentscope.core.agent.ReActAgent;
+import io.agentscope.core.agent.react.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.runtime.RuntimeContext;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.Toolkit;
@@ -33,7 +32,7 @@ class ToolCallingIT extends E2eTestSupport {
         Msg result = agent.call(List.of(new UserMessage("""
                         You MUST call add_numbers. Call add_numbers with a=17 and b=25.
                         Then output RESULT=<tool result>.
-                        """)), RuntimeContext.empty())
+                        """)))
                 .block();
 
         assertNotNull(result);

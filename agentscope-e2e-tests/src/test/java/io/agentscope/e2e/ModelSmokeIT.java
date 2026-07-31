@@ -3,10 +3,9 @@ package io.agentscope.e2e;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.agentscope.core.agent.ReActAgent;
+import io.agentscope.core.agent.react.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.runtime.RuntimeContext;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -21,8 +20,7 @@ class ModelSmokeIT extends E2eTestSupport {
                 """);
 
         Msg result = agent.call(
-                        List.of(new UserMessage("Reply with the token: E2E_OK")),
-                        RuntimeContext.empty())
+                        List.of(new UserMessage("Reply with the token: E2E_OK")))
                 .block();
 
         assertNotNull(result);
