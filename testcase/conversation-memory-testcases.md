@@ -8,7 +8,7 @@
 | 目标版本 | `2.0.0`（与本仓库 `pom.xml` 中的 `agentscope.version` 一致） |
 | 被测模块 | Agent 的多轮会话与记忆（Conversation Memory） |
 | 测试级别 | 用户视角端到端集成测试 |
-| 计划测试类 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ConversationMemoryIT.java` |
+| 测试类 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ConversationMemoryIT.java` |
 | 文档状态 | 已实现 |
 
 ## 2. 选择该模块的原因
@@ -166,11 +166,11 @@
 - 第三轮回复包含第一轮保存的随机项目代号。
 - 第三轮不回复 `UNKNOWN`，无关任务不会覆盖已有记忆。
 
-## 8. 建议的实现结构
+## 8. 当前实现结构
 
-计划新增一个 `ConversationMemoryIT`，复用 `E2eTestSupport` 中的模型配置。可以新增私有辅助
-方法用于构造带固定系统提示的 Agent、阻塞获取最终回复以及生成测试秘密，但不应把某个用例的
-Memory 实例放到静态字段中。
+`ConversationMemoryIT` 已复用 `E2eTestSupport` 中的模型配置，并以私有辅助方法构造带固定
+系统提示的 Agent、阻塞获取最终回复以及生成测试秘密。任何后续用例均不应把某个用例的 Memory
+实例放到静态字段中。
 
 实现时用 JUnit 5 的 `@Test` 和 `@Timeout(60)`；测试类名以 `IT` 结尾，使其只在现有
 Failsafe `e2e` profile 下运行。断言应输出实际模型文本，方便 CI 失败诊断。
@@ -183,7 +183,7 @@ Failsafe `e2e` profile 下运行。断言应输出实际模型文本，方便 CI
 - `shouldUseLatestCorrectionInConversationOrder`
 - `shouldRetainFactAcrossUnrelatedConversationTurn`
 
-## 9. 运行方式（实现后）
+## 9. 运行方式
 
 仅运行记忆模块用例：
 
