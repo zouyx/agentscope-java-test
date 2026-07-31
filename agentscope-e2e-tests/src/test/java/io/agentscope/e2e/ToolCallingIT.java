@@ -23,12 +23,13 @@ class ToolCallingIT extends E2eTestSupport {
         AddNumbers tool = new AddNumbers();
         ReActAgent agent = createToolAgent(
                 "tool-e2e-agent",
-                "You must use the requested tool. Return only RESULT=<tool result>.",
+                "You must use the requested tool. After it succeeds, reply only with the actual "
+                        + "numeric result using RESULT=<number>. Never copy placeholder text.",
                 tool);
 
         Msg result = agent.call(List.of(new UserMessage("""
                         You MUST call add_numbers. Call add_numbers with a=17 and b=25.
-                        Then output RESULT=<tool result>.
+                        Then output the actual numeric result. Do not copy placeholder text.
                         """)))
                 .block();
 
@@ -46,13 +47,14 @@ class ToolCallingIT extends E2eTestSupport {
         SendNotification sendNotification = new SendNotification();
         ReActAgent agent = createToolAgent(
                 "tool-selection-e2e-agent",
-                "You must use the requested tool. Return only RESULT=<tool result>.",
+                "You must use the requested tool. After it succeeds, reply only with the actual "
+                        + "numeric result using RESULT=<number>. Never copy placeholder text.",
                 addNumbers,
                 sendNotification);
 
         Msg result = agent.call(List.of(new UserMessage("""
                         You MUST call add_numbers. Call add_numbers with a=17 and b=25.
-                        Then output RESULT=<tool result>.
+                        Then output the actual numeric result. Do not copy placeholder text.
                         """)))
                 .block();
 
