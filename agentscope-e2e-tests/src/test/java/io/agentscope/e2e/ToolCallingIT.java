@@ -46,15 +46,12 @@ class ToolCallingIT extends E2eTestSupport {
         SendNotification sendNotification = new SendNotification();
         ReActAgent agent = createToolAgent(
                 "tool-selection-e2e-agent",
-                "Use only the tool explicitly requested by the user. "
-                        + "Never call send_notification unless the user asks to send a notification. "
-                        + "After add_numbers succeeds, return only RESULT=<tool result>.",
+                "You must use the requested tool. Return only RESULT=<tool result>.",
                 addNumbers,
                 sendNotification);
 
         Msg result = agent.call(List.of(new UserMessage("""
-                        You MUST call add_numbers with a=17 and b=25.
-                        Do not call send_notification. Do not send any notification.
+                        You MUST call add_numbers. Call add_numbers with a=17 and b=25.
                         Then output RESULT=<tool result>.
                         """)))
                 .block();
