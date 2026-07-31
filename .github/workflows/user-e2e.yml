@@ -1,0 +1,67 @@
+name: User E2E
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: user-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  user-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OLLAMA_BASE_URL: http://localhost:11434
+      E2E_MODEL_ID: ollama:qwen3:0.6b
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Start Ollama
+        run: docker run -d --name ollama -p 11434:11434 ollama/ollama
+      - name: Wait for Ollama
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:11434/api/tags >/dev/null; then
+              echo "Ollama is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs ollama
+          exit 1
+      - name: Pull test model
+        run: docker exec ollama ollama pull qwen3:0.6b
+      - name: Verify model
+        run: docker exec ollama ollama list
+      - name: Model preflight
+        run: |
+          curl -fsS http://localhost:11434/api/chat \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "model": "qwen3:0.6b",
+              "stream": false,
+              "messages": [{"role": "user", "content": "Reply OK"}]
+            }'
+      - name: Run User E2E
+        run: mvn -B -pl agentscope-e2e-tests -am verify -Pe2e
+      - name: Ollama logs
+        if: failure()
+        run: docker logs ollama
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-e2e-report
+          path: agentscope-e2e-tests/target/failsafe-reports/**
+          if-no-files-found: warn
