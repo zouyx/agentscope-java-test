@@ -3,7 +3,7 @@ package io.agentscope.e2e;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.agentscope.core.agent.react.ReActAgent;
+import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import java.util.List;
