@@ -19,9 +19,13 @@ class StreamingIT extends E2eTestSupport {
         ReActAgent agent = createAgent("Reply briefly in plain text.");
         List<Msg> chunks = new CopyOnWriteArrayList<>();
 
-        agent.stream(List.of(new UserMessage("Write the numbers 1, 2, and 3.")), RuntimeContext.empty())
+        // ReActAgent exposes streaming through its reactive call publisher; it does not have a
+        // separate stream(...) entry point. Subscribing without collapsing the publisher lets
+        // this test observe each message emitted while Ollama is streaming.
+        agent.call(List.of(new UserMessage("Write the numbers 1, 2, and 3.")), RuntimeContext.empty())
                 .doOnNext(chunks::add)
-                .blockLast();
+                .then()
+                .block();
 
         assertFalse(chunks.isEmpty(), "stream must emit at least one message");
         assertTrue(chunks.stream()
