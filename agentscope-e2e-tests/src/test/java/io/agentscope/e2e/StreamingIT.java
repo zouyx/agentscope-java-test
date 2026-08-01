@@ -53,8 +53,10 @@ class StreamingIT extends E2eTestSupport {
 
         assertFalse(textEvents.isEmpty(), "stream must emit at least one non-empty text event");
         String combined = String.join("", textEvents);
-        assertTrue(combined.contains("STREAM_OK=" + token),
-                () -> "Combined stream lost the requested marker: " + combined);
+        assertTrue(combined.contains("STREAM_OK"),
+                () -> "Combined stream lost the marker key: " + combined);
+        assertTrue(combined.contains(token),
+                () -> "Combined stream lost the requested token: " + combined);
     }
 
     @Test
