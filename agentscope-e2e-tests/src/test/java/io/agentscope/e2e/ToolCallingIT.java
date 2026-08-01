@@ -73,8 +73,8 @@ class ToolCallingIT extends E2eTestSupport {
         FailingOperation failingOperation = new FailingOperation();
         ReActAgent agent = createToolAgent(
                 "tool-failure-e2e-agent",
-                "You must use the requested tool exactly once. "
-                        + "If the tool reports an error, do not retry it and reply only TOOL_FAILED.",
+                "You must use the requested tool before replying. If the tool reports an error, "
+                        + "do not retry it and reply only TOOL_FAILED.",
                 failingOperation);
 
         Msg result = null;
@@ -82,7 +82,6 @@ class ToolCallingIT extends E2eTestSupport {
         try {
             result = agent.call(List.of(new UserMessage("""
                             You MUST call fail_operation now.
-                            If it fails, reply only TOOL_FAILED. Never claim RESULT=SUCCESS.
                             """)))
                     .block();
         } catch (RuntimeException error) {
