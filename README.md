@@ -8,9 +8,9 @@ of inspecting framework internals.
 
 | Scenario | Test class | Test case design | User-visible acceptance criteria |
 | --- | --- | --- | --- |
-| Basic model call | `ModelSmokeIT` | [`model-call-testcases.md`](testcase/model-call-testcases.md) | The Agent accepts a request and returns the requested content |
-| Streaming output | `StreamingIT` | [`streaming-output-testcases.md`](testcase/streaming-output-testcases.md) | The call emits at least one non-empty text message |
-| Java tool calling | `ToolCallingIT` | [`java-tool-calling-testcases.md`](testcase/java-tool-calling-testcases.md) | The Agent calls the tool exactly once and returns the calculated result |
+| Basic model call | `ModelSmokeIT` | [`model-call-testcases.md`](testcase/model-call-testcases.md) | Requests stay isolated and unavailable models fail clearly |
+| Streaming output | `StreamingIT` | [`streaming-output-testcases.md`](testcase/streaming-output-testcases.md) | Text events can be combined and service failures terminate with an error |
+| Java tool calling | `ToolCallingIT` | [`java-tool-calling-testcases.md`](testcase/java-tool-calling-testcases.md) | The correct tool and arguments are used; unknown or failing tools never look successful |
 | Multi-turn memory | `ConversationMemoryIT` | [`conversation-memory-testcases.md`](testcase/conversation-memory-testcases.md) | The Agent remembers, isolates, resets, and updates conversation data in order |
 
 See [`agent.md`](agent.md) for test principles, scenario design, and the checklist for adding

@@ -13,6 +13,10 @@
 | Java 工具调用 | [java-tool-calling-testcases.md](java-tool-calling-testcases.md) | `ToolCallingIT` | P0 |
 | 多轮会话记忆 | [conversation-memory-testcases.md](conversation-memory-testcases.md) | `ConversationMemoryIT` | P0 / P1 |
 
+当前文档与自动化的对应关系为 15 个用例：基础模型调用 3 个、流式输出 3 个、Java 工具调用
+4 个、多轮会话记忆 5 个。修改 `*IT` 中的测试方法时，应同步检查对应设计文档和本索引中的
+数量及优先级。
+
 ## 共用环境
 
 - Java 17、Maven 3.8+、Docker；Ollama 服务监听 `OLLAMA_BASE_URL`（默认
@@ -30,4 +34,5 @@
   语言回复。
 - 若失败，先执行 Ollama 健康检查及模型列表检查，再根据断言区分环境连接、模型遵循指令和
   AgentScope 公共 API 行为问题。
-- P0 用例必须纳入合并前 E2E 验证；P1 用例应纳入常规 CI；P2 用例可作为专项回归执行。
+- 当前 Failsafe 配置和 CI 工作流按测试类运行，因此启用 `e2e` profile 时 P0、P1、P2 用例会
+  一并执行，不支持按优先级自动筛选。优先级用于风险排序和失败处置，不代表默认跳过策略。

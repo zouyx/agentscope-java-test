@@ -156,8 +156,8 @@ previous conversation's project code," rather than guessing an internal root cau
 
 ## 7. Current coverage and next steps
 
-The current automation covers basic model calls, streaming output, Java tool calling, and the
-retention, isolation, reset, and ordering of conversation memory. Future user-risk-based coverage
-can include invalid model configuration, unavailable services, tool exceptions, concurrent
-conversations, request cancellation, and oversized contexts. Prioritize journeys that are both
-frequent and costly when they fail.
+The current automation covers basic and independent model calls, unavailable model and service
+errors, streaming collection, Java tool selection and exceptions, and the retention, isolation,
+reset, and ordering of conversation memory. Future user-risk-based coverage can include malformed
+model identifiers, concurrent conversations and tool calls, request cancellation, rate limiting,
+and oversized contexts. Prioritize journeys that are both frequent and costly when they fail.
