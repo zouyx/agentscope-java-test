@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 15
     env:
       OLLAMA_BASE_URL: http://localhost:11434
-      E2E_MODEL_ID: ollama:qwen3:0.6b
+      E2E_MODEL_ID: ollama:qwen3:1.7b
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
           docker logs ollama
           exit 1
       - name: Pull test model
-        run: docker exec ollama ollama pull qwen3:0.6b
+        run: docker exec ollama ollama pull qwen3:1.7b
       - name: Verify model
         run: docker exec ollama ollama list
       - name: Model preflight
@@ -49,7 +49,7 @@ jobs:
           curl -fsS http://localhost:11434/api/chat \
             -H 'Content-Type: application/json' \
             -d '{
-              "model": "qwen3:0.6b",
+              "model": "qwen3:1.7b",
               "stream": false,
               "messages": [{"role": "user", "content": "Reply OK"}]
             }'
