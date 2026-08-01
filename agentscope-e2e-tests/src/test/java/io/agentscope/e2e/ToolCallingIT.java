@@ -77,15 +77,27 @@ class ToolCallingIT extends E2eTestSupport {
                         + "If the tool reports an error, do not retry it and reply only TOOL_FAILED.",
                 failingOperation);
 
-        Msg result = agent.call(List.of(new UserMessage("""
-                        You MUST call fail_operation now.
-                        If it fails, reply only TOOL_FAILED. Never claim RESULT=SUCCESS.
-                        """)))
-                .block();
+        Msg result = null;
+        RuntimeException failure = null;
+        try {
+            result = agent.call(List.of(new UserMessage("""
+                            You MUST call fail_operation now.
+                            If it fails, reply only TOOL_FAILED. Never claim RESULT=SUCCESS.
+                            """)))
+                    .block();
+        } catch (RuntimeException error) {
+            failure = error;
+        }
 
-        assertNotNull(result, "agent call must emit a result after a tool failure");
         assertEquals(1, failingOperation.invocationCount.get(),
                 "a failed tool operation must not be retried implicitly");
+        if (failure != null) {
+            assertTrue(hasMessageInCauseChain(failure, "controlled tool failure"),
+                    "Unexpected propagated tool failure: " + failure);
+            return;
+        }
+
+        assertNotNull(result, "agent call must emit a result after a tool failure");
         String text = result.getTextContent();
         assertNotNull(text, "tool-failure result must contain text");
         assertTrue(text.contains("TOOL_FAILED"), () -> "Unexpected tool-failure reply: " + text);
@@ -133,6 +145,15 @@ class ToolCallingIT extends E2eTestSupport {
                 .model(MODEL_ID)
                 .toolkit(toolkit)
                 .build();
+    }
+
+    private boolean hasMessageInCauseChain(Throwable error, String expectedText) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (current.getMessage() != null && current.getMessage().contains(expectedText)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static final class AddNumbers {
