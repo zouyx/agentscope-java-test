@@ -70,7 +70,7 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void shouldReportToolFailureWithoutClaimingSuccess() {
         FailingOperation failingOperation = new FailingOperation();
         ReActAgent agent = createToolAgent(

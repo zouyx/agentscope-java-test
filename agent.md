@@ -113,6 +113,8 @@ Follow these implementation conventions:
 
 - Name test methods after behavior, for example `shouldRecallFactFromPreviousTurn`.
 - Use JUnit 5 `@Test` and give real-model tests `@Timeout(60)` or an equivalent explicit timeout.
+  A scenario that intentionally permits model-driven tool retries may use a longer, documented
+  method-level timeout while remaining bounded.
 - Reuse the model-selection logic in `E2eTestSupport` so users can switch models with
   `E2E_MODEL_ID`.
 - On a positive path, verify at least a non-empty response and the business result. On a negative
