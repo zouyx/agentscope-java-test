@@ -41,10 +41,11 @@ class StreamingIT extends E2eTestSupport {
     @Timeout(60)
     void shouldPreserveRequestedMarkerWhenCombiningStreamedText() {
         String token = "STREAM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        ReActAgent agent = createAgent("Reply only STREAM_OK=<token supplied by the user>.");
+        String expectedReply = "STREAM_OK=" + token;
+        ReActAgent agent = createAgent("Reply only with this exact text: " + expectedReply);
         List<String> textEvents = new CopyOnWriteArrayList<>();
 
-        agent.call(List.of(new UserMessage("Reply only STREAM_OK=" + token + ".")))
+        agent.call(List.of(new UserMessage("Reply only with this exact text: " + expectedReply)))
                 .map(Msg::getTextContent)
                 .filter(text -> text != null && !text.isBlank())
                 .doOnNext(textEvents::add)
