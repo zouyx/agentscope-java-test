@@ -14,6 +14,11 @@ questions:
 Acceptance criteria must not depend on internal classes, private fields, or implementation
 algorithms. Critical user journeys must not replace the real model with a mock.
 
+This file is the contributor policy for the E2E suite. `README.md` is the operator-facing quick
+start, while documents under `testcase/` are the source of truth for individual scenario steps
+and acceptance criteria. Update all affected documents in the same change whenever behavior,
+configuration, or coverage changes.
+
 ## 2. User roles and critical journeys
 
 | User role | Primary need | What to verify |
@@ -93,6 +98,23 @@ Follow these implementation conventions:
 - On a positive path, verify at least a non-empty response and the business result. On a negative
   path, also verify that errors are not silently swallowed.
 
+### 4.1 Change workflow
+
+Use this sequence when adding or changing coverage:
+
+1. Identify the user risk, priority, and observable success condition.
+2. Add or update the scenario design under `testcase/`, including failure diagnosis and cleanup.
+3. Implement the `*IT` test using only public APIs and shared configuration from
+   `E2eTestSupport`.
+4. Run the single scenario first, then the complete E2E profile to detect shared-state or ordering
+   problems.
+5. Update the coverage table and configuration guidance in `README.md` if the supported user path
+   or required setup changed.
+
+Reviews should reject a test that passes only because the model call was skipped, that asserts
+exact prose instead of behavior, or that leaves its Agent, memory, or tool state available to
+another test.
+
 ## 5. Execution checklist
 
 ### Before execution
@@ -102,6 +124,7 @@ Follow these implementation conventions:
 - [ ] The model selected by `E2E_MODEL_ID` is downloaded and responds to a direct request.
 - [ ] Test data contains no real user information, credentials, or other sensitive values.
 - [ ] The test creates an independent Agent and memory and does not depend on test execution order.
+- [ ] The documented scenario and its automated assertions describe the same user-visible result.
 
 ### During execution
 
@@ -118,6 +141,7 @@ Follow these implementation conventions:
 - [ ] A failed case is rerun to distinguish a stable defect from model variation, with the model
   name and version recorded.
 - [ ] Containers, conversations, and temporary resources created by the test are removed.
+- [ ] Coverage and setup changes are reflected in `README.md` and the `testcase/` index.
 
 ## 6. Defect reporting
 
@@ -132,8 +156,8 @@ previous conversation's project code," rather than guessing an internal root cau
 
 ## 7. Current coverage and next steps
 
-The current automation covers basic model calls, streaming output, Java tool calling, and the
-retention, isolation, reset, and ordering of conversation memory. Future user-risk-based coverage
-can include invalid model configuration, unavailable services, tool exceptions, concurrent
-conversations, request cancellation, and oversized contexts. Prioritize journeys that are both
-frequent and costly when they fail.
+The current automation covers basic and independent model calls, unavailable model and service
+errors, streaming collection, Java tool selection and exceptions, and the retention, isolation,
+reset, and ordering of conversation memory. Future user-risk-based coverage can include malformed
+model identifiers, concurrent conversations and tool calls, request cancellation, rate limiting,
+and oversized contexts. Prioritize journeys that are both frequent and costly when they fail.
