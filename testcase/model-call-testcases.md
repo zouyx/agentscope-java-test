@@ -9,7 +9,7 @@
 | 被测模块 | `ReActAgent` 的模型配置与同步调用用户路径 |
 | 测试级别 | 用户视角端到端集成测试 |
 | 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ModelSmokeIT.java` |
-| 文档状态 | TC-MODEL-001 已实现；其余为扩展回归设计 |
+| 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围
 
@@ -51,6 +51,7 @@
 | 优先级 | P1 |
 | 用户目标 | 创建多个独立 Agent 处理不同请求时，每个请求获得与自身输入对应的结果。 |
 | 前置条件 | 同 TC-MODEL-001。 |
+| 自动化状态 | 已由 `ModelSmokeIT.shouldKeepIndependentModelRequestsAssociatedWithTheirInputs` 覆盖。 |
 
 **步骤：**
 
@@ -71,6 +72,7 @@
 | 优先级 | P1 |
 | 用户目标 | 配置不存在的模型时，能在限定时间内收到异常而非永久等待或静默空成功。 |
 | 前置条件 | Ollama 本身可达；选取一个确认未下载的随机模型标识。 |
+| 自动化状态 | 已由 `ModelSmokeIT.shouldFailClearlyForUnavailableModel` 覆盖。 |
 
 **步骤：**
 
