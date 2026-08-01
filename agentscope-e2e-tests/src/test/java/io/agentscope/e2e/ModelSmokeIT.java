@@ -36,8 +36,12 @@ class ModelSmokeIT extends E2eTestSupport {
     void shouldKeepIndependentModelRequestsAssociatedWithTheirInputs() {
         String firstToken = uniqueToken("FIRST");
         String secondToken = uniqueToken("SECOND");
-        ReActAgent firstAgent = createAgent("Reply only TOKEN=<token supplied by the user>.");
-        ReActAgent secondAgent = createAgent("Reply only TOKEN=<token supplied by the user>.");
+        ReActAgent firstAgent = createAgent(
+                "independent-model-agent-first",
+                "Reply only TOKEN=<token supplied by the user>.");
+        ReActAgent secondAgent = createAgent(
+                "independent-model-agent-second",
+                "Reply only TOKEN=<token supplied by the user>.");
 
         String firstReply = callForText(firstAgent, "Reply only TOKEN=" + firstToken + ".");
         String secondReply = callForText(secondAgent, "Reply only TOKEN=" + secondToken + ".");

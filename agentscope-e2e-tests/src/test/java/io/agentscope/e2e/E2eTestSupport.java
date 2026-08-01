@@ -7,8 +7,12 @@ abstract class E2eTestSupport {
             System.getenv().getOrDefault("E2E_MODEL_ID", "ollama:qwen3:0.6b");
 
     protected ReActAgent createAgent(String prompt) {
+        return createAgent("e2e-agent", prompt);
+    }
+
+    protected ReActAgent createAgent(String name, String prompt) {
         return ReActAgent.builder()
-                .name("e2e-agent")
+                .name(name)
                 .sysPrompt(prompt)
                 .model(MODEL_ID)
                 .build();
