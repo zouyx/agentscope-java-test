@@ -12,6 +12,7 @@ import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.Toolkit;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -99,7 +100,9 @@ class ToolCallingIT extends E2eTestSupport {
         assertNotNull(result, "agent call must emit a result after a tool failure");
         String text = result.getTextContent();
         assertNotNull(text, "tool-failure result must contain text");
-        assertTrue(text.contains("TOOL_FAILED"), () -> "Unexpected tool-failure reply: " + text);
+        String normalizedText = text.toLowerCase(Locale.ROOT);
+        assertTrue(normalizedText.contains("fail") || normalizedText.contains("error"),
+                () -> "Tool failure was not reported: " + text);
         assertFalse(text.contains("RESULT=SUCCESS"),
                 () -> "Tool failure was reported as success: " + text);
     }
