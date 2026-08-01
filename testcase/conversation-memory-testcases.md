@@ -8,7 +8,7 @@
 | 目标版本 | `2.0.0`（与本仓库 `pom.xml` 中的 `agentscope.version` 一致） |
 | 被测模块 | Agent 的多轮会话与记忆（Conversation Memory） |
 | 测试级别 | 用户视角端到端集成测试 |
-| 测试类 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ConversationMemoryIT.java` |
+| 测试类 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/memory/ConversationMemoryIT.java` |
 | 文档状态 | 已实现 |
 
 ## 2. 选择该模块的原因

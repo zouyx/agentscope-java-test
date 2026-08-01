@@ -72,6 +72,26 @@ and prohibited values rather than compare an entire response character for chara
 - Cleanup failures must not hide the original failure, and logs must not expose credentials or
   real user data.
 
+### 3.5 Organize tests by user scenario
+
+Keep E2E test packages aligned with the user-facing scenario, not with AgentScope implementation
+modules. Under `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/`, use this layout:
+
+| Package | Scope |
+| --- | --- |
+| `model` | Basic model calls, request independence, and model-configuration failures |
+| `memory` | Multi-turn recall, isolation, reset, and conversation ordering |
+| `streaming` | Reactive text delivery and streaming-service failure behavior |
+| `tool` | Java tool selection, arguments, side effects, and tool-error handling |
+| `support` | Shared public-API setup only, including model selection and common test helpers |
+
+- Each `*IT` class belongs to exactly one scenario package.
+- Scenario packages must not import test classes or helpers from one another. Promote genuinely
+  reusable public-API setup to `support` instead.
+- Keep scenario-specific fixtures, such as Java tools used only by tool-calling cases, beside the
+  owning test class.
+- When adding a scenario, create a matching package and document its test cases under `testcase/`.
+
 ## 4. Test case template
 
 Before implementing a new JUnit 5 test class whose name ends in `IT`, document the scenario under

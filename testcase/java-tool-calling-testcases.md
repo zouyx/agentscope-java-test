@@ -8,7 +8,7 @@
 | 目标版本 | `2.0.0` |
 | 被测模块 | `Toolkit`、`@Tool` 与 `@ToolParam` 的 Java 工具注册和 Agent 调用路径 |
 | 测试级别 | 用户视角端到端集成测试 |
-| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ToolCallingIT.java` |
+| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/tool/ToolCallingIT.java` |
 | 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围
