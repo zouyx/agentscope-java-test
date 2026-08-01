@@ -35,6 +35,21 @@ test cases. See
 - Approximately 1 GB of free disk space
 - Local port `11434` available for Ollama
 
+## Quick start
+
+The following commands start the same model service used by the tests and run the complete suite:
+
+```bash
+docker run -d --name ollama -p 11434:11434 ollama/ollama
+docker exec ollama ollama pull qwen3:0.6b
+OLLAMA_BASE_URL=http://localhost:11434 \
+  mvn -B -pl agentscope-e2e-tests -am verify -Pe2e
+```
+
+The first run can take longer while Docker and Maven download their dependencies. A successful run
+ends with `BUILD SUCCESS`; detailed integration-test results are written to
+`agentscope-e2e-tests/target/failsafe-reports/`.
+
 ## Run locally
 
 1. Start Ollama and download the default small model:
@@ -56,6 +71,18 @@ test cases. See
 a particular CPU, pull `qwen3:1.7b` and set `E2E_MODEL_ID=ollama:qwen3:1.7b` without changing the
 tests.
 
+### Configuration reference
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Base URL of the Ollama HTTP service |
+| `E2E_MODEL_ID` | `ollama:qwen3:0.6b` | AgentScope model identifier used by every scenario |
+| Maven profile `e2e` | Disabled | Enables the `*IT` integration tests during `verify` |
+
+Keep the `ollama:` prefix in `E2E_MODEL_ID`; the value after it must match a model shown by
+`docker exec ollama ollama list`. CI intentionally uses `ollama:qwen3:1.7b` for more reliable tool
+calling, while the smaller default keeps local setup lightweight.
+
 ### Run a single scenario
 
 ```bash
@@ -76,6 +103,18 @@ tests whose class names end in `IT`.
   a tool-calling failure, forgotten conversation data, or cross-session leakage.
 - Do not determine success from natural-language phrasing alone. The tests verify fixed protocol
   markers and unique tokens that represent the required behavior.
+
+### Troubleshooting
+
+| Symptom | Check | Resolution |
+| --- | --- | --- |
+| Connection refused on port `11434` | `curl -fsS "$OLLAMA_BASE_URL/api/tags"` | Start Ollama or correct `OLLAMA_BASE_URL` |
+| Model not found | `docker exec ollama ollama list` | Pull the model named by `E2E_MODEL_ID` |
+| No integration tests run | Maven output says the Failsafe tests are skipped | Add `-Pe2e` and run the `verify` phase |
+| Tool scenario varies between runs | Rerun only `ToolCallingIT` and record the model ID | Use `qwen3:1.7b` and confirm the model is fully downloaded |
+| A scenario times out | Call `/api/chat` directly and inspect `docker logs ollama` | Separate a slow or unhealthy model service from an SDK failure |
+
+To stop and remove the local service after testing, run `docker rm -f ollama`.
 
 ## CI diagnostics
 
