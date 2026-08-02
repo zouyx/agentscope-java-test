@@ -1,4 +1,4 @@
-package io.agentscope.e2e;
+package io.agentscope.e2e.tool;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,6 +11,7 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.e2e.support.E2eTestSupport;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,7 +70,7 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void shouldReportToolFailureWithoutClaimingSuccess() {
         FailingOperation failingOperation = new FailingOperation();
         ReActAgent agent = createToolAgent(

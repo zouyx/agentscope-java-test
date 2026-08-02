@@ -8,7 +8,7 @@
 | 目标版本 | `2.0.0`（与本仓库 `pom.xml` 的 `agentscope.version` 一致） |
 | 被测模块 | `ReActAgent` 的模型配置与同步调用用户路径 |
 | 测试级别 | 用户视角端到端集成测试 |
-| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/ModelSmokeIT.java` |
+| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/model/ModelSmokeIT.java` |
 | 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围

@@ -8,7 +8,7 @@
 | 目标版本 | `2.0.0` |
 | 被测模块 | `ReActAgent.call(...)` 返回的 Reactor 流式消息发布路径 |
 | 测试级别 | 用户视角端到端集成测试 |
-| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/StreamingIT.java` |
+| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/streaming/StreamingIT.java` |
 | 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围

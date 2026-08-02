@@ -1,4 +1,4 @@
-package io.agentscope.e2e;
+package io.agentscope.e2e.memory;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
+import io.agentscope.e2e.support.E2eTestSupport;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
