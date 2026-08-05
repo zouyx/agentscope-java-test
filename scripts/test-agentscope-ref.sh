@@ -49,8 +49,8 @@ mvn -B -Dmaven.repo.local="${MAVEN_REPOSITORY}" \
 
 AGENTSCOPE_VERSION="$(mvn -q -DforceStdout -Dmaven.repo.local="${MAVEN_REPOSITORY}" \
     -f "${AGENTSCOPE_SOURCE_DIR}/pom.xml" \
-    help:evaluate -Dexpression=revision)"
-if [[ -z "${AGENTSCOPE_VERSION}" || "${AGENTSCOPE_VERSION}" == *'null object or invalid expression'* ]]; then
+    help:evaluate -Dexpression=project.version | tr -d '\r\n')"
+if [[ -z "${AGENTSCOPE_VERSION}" || "${AGENTSCOPE_VERSION}" == *'${'* || "${AGENTSCOPE_VERSION}" == *'null object or invalid expression'* ]]; then
     echo "Unable to determine the AgentScope Java Maven version from ${AGENTSCOPE_SOURCE_DIR}/pom.xml" >&2
     exit 2
 fi
