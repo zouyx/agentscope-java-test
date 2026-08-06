@@ -94,6 +94,29 @@ Replace `ConversationMemoryIT` with another test class from the coverage table t
 scenario. Normal Maven builds skip these integration tests by default. The `e2e` profile enables
 tests whose class names end in `IT`.
 
+### Test an AgentScope Java branch
+
+The default command above uses the released AgentScope Java version declared in the root `pom.xml`.
+To validate an unreleased branch, tag, or commit, build the required AgentScope Java modules first
+and run the E2E suite against those locally installed artifacts:
+
+```bash
+AGENTSCOPE_REF=main ./scripts/test-agentscope-ref.sh
+```
+
+Set `AGENTSCOPE_REF` to any branch, tag, or reachable commit SHA. The script creates an isolated
+Maven repository under `target/agentscope-m2`, so it does not replace artifacts in your normal
+`~/.m2` cache. Set `AGENTSCOPE_REPOSITORY` when the ref is in a fork. If you already have an
+AgentScope Java checkout, use it directly instead of cloning:
+
+```bash
+AGENTSCOPE_SOURCE_DIR=../agentscope-java ./scripts/test-agentscope-ref.sh
+```
+
+The GitHub Actions **User E2E** workflow also accepts `agentscope_ref` and
+`agentscope_repository` inputs when started with **Run workflow**. It checks out that ref (or a
+branch from your fork), builds the same two modules, and uploads the normal Failsafe report.
+
 ## Interpret test results
 
 - A Maven exit code of `0` with no failures or errors in the Failsafe report means the tests
