@@ -100,12 +100,12 @@ class ToolCallingIT extends E2eTestSupport {
 
         assertToolInvocation(firstTool, firstToken);
         assertToolInvocation(secondTool, secondToken);
-        assertTrue(replies.get(0).contains(firstToken),
-                () -> "First concurrent result did not contain its token: " + replies.get(0));
+        assertEquals("RESULT=" + firstToken, replies.get(0).trim(),
+                () -> "Unexpected first concurrent result: " + replies.get(0));
         assertFalse(replies.get(0).contains(secondToken),
                 () -> "First concurrent result leaked the other token: " + replies.get(0));
-        assertTrue(replies.get(1).contains(secondToken),
-                () -> "Second concurrent result did not contain its token: " + replies.get(1));
+        assertEquals("RESULT=" + secondToken, replies.get(1).trim(),
+                () -> "Unexpected second concurrent result: " + replies.get(1));
         assertFalse(replies.get(1).contains(firstToken),
                 () -> "Second concurrent result leaked the other token: " + replies.get(1));
     }
@@ -218,7 +218,7 @@ class ToolCallingIT extends E2eTestSupport {
 
     private void assertToolInvocation(ConcurrentEchoTool tool, String expectedToken) {
         assertEquals(1, tool.invocationCount.get(), "the concurrent tool must be invoked exactly once");
-        assertEquals(List.of(new ToolInvocation(expectedToken, "RESULT=" + expectedToken)),
+        assertEquals(List.of(new ToolInvocation(expectedToken, expectedToken)),
                 List.copyOf(tool.invocations),
                 "the concurrent tool must record only its own argument and result");
     }
@@ -289,7 +289,7 @@ class ToolCallingIT extends E2eTestSupport {
 
         @Tool(name = "echo_token", description = "Returns the supplied token unchanged.")
         public String echo(@ToolParam(name = "token") String token) {
-            String result = "RESULT=" + token;
+            String result = token;
             invocations.add(new ToolInvocation(token, result));
             invocationCount.incrementAndGet();
             return result;

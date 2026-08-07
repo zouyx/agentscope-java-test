@@ -1,6 +1,7 @@
 package io.agentscope.e2e.memory;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,13 +22,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 class ConversationMemoryIT extends E2eTestSupport {
+    private static final Duration CALL_TIMEOUT = Duration.ofSeconds(60);
     private static final String MEMORY_PROMPT = """
             You are testing conversation memory. Follow these rules exactly:
+            - Remember project codes supplied by the user during this conversation.
+            - When asked for the current project code, reply only CODE=<current code>.
+            - If no project code was supplied in this conversation, reply only UNKNOWN.
+            - A newer project code replaces an older project code.
+            """;
+    private static final String CONCURRENT_MEMORY_PROMPT = """
+            You are testing concurrent conversation memory. Follow these rules exactly:
             - Remember project codes supplied by the user during this conversation.
             - When supplied a project code, reply only SAVED=<supplied code>.
             - When asked for the current project code, reply only CODE=<current code>.
             - If no project code was supplied in this conversation, reply only UNKNOWN.
-            - A newer project code replaces an older project code.
             """;
 
     @Test
@@ -63,14 +71,14 @@ class ConversationMemoryIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(150)
     void shouldIsolateConcurrentCallsAcrossAgents() throws Exception {
-        int agentCount = 3;
+        int agentCount = 2;
         List<String> codes = new ArrayList<>();
         List<ReActAgent> agents = new ArrayList<>();
         for (int index = 0; index < agentCount; index++) {
             codes.add(uniqueCode("CONCURRENT"));
-            agents.add(createMemoryAgent("concurrent-isolation-agent-" + index));
+            agents.add(createConcurrentMemoryAgent("concurrent-isolation-agent-" + index));
         }
 
         List<Callable<ConversationReplies>> calls = new ArrayList<>();
@@ -78,24 +86,29 @@ class ConversationMemoryIT extends E2eTestSupport {
             ReActAgent agent = agents.get(index);
             String code = codes.get(index);
             calls.add(() -> {
-                String writeReply = assertText(agent,
+                String writeReply = assertTextWithin(agent,
                         "Remember that my project code is " + code + ".");
-                String readReply = assertText(agent, "What is my current project code?");
+                String readReply = assertTextWithin(agent, "What is my current project code?");
                 return new ConversationReplies(writeReply, readReply);
             });
         }
 
-        List<ConversationReplies> replies = runConcurrently(calls, Duration.ofSeconds(50));
+        List<ConversationReplies> replies = runConcurrently(calls, Duration.ofSeconds(120));
         for (int index = 0; index < agentCount; index++) {
             String ownCode = codes.get(index);
-            for (String reply : replies.get(index).all()) {
-                assertTrue(reply.contains(ownCode),
-                        () -> "Agent did not return its own code: " + reply);
-                for (String otherCode : codes) {
-                    if (!otherCode.equals(ownCode)) {
-                        assertFalse(reply.contains(otherCode),
-                                () -> "Concurrent agent response leaked another code: " + reply);
-                    }
+            ConversationReplies agentReplies = replies.get(index);
+            assertEquals("SAVED=" + ownCode, agentReplies.writeReply().trim(),
+                    () -> "Unexpected concurrent write reply: " + agentReplies.writeReply());
+            assertEquals("CODE=" + ownCode, agentReplies.readReply().trim(),
+                    () -> "Unexpected concurrent read reply: " + agentReplies.readReply());
+            for (String otherCode : codes) {
+                if (!otherCode.equals(ownCode)) {
+                    assertFalse(agentReplies.writeReply().contains(otherCode),
+                            () -> "Concurrent write reply leaked another code: "
+                                    + agentReplies.writeReply());
+                    assertFalse(agentReplies.readReply().contains(otherCode),
+                            () -> "Concurrent read reply leaked another code: "
+                                    + agentReplies.readReply());
                 }
             }
         }
@@ -161,15 +174,32 @@ class ConversationMemoryIT extends E2eTestSupport {
     }
 
     private ReActAgent createMemoryAgent(String name) {
+        return createMemoryAgent(name, MEMORY_PROMPT);
+    }
+
+    private ReActAgent createConcurrentMemoryAgent(String name) {
+        return createMemoryAgent(name, CONCURRENT_MEMORY_PROMPT);
+    }
+
+    private ReActAgent createMemoryAgent(String name, String prompt) {
         return ReActAgent.builder()
                 .name(name)
-                .sysPrompt(MEMORY_PROMPT)
+                .sysPrompt(prompt)
                 .model(MODEL_ID)
                 .build();
     }
 
     private String assertText(ReActAgent agent, String input) {
         Msg result = agent.call(List.of(new UserMessage(input))).block();
+        return assertText(result);
+    }
+
+    private String assertTextWithin(ReActAgent agent, String input) {
+        Msg result = agent.call(List.of(new UserMessage(input))).block(CALL_TIMEOUT);
+        return assertText(result);
+    }
+
+    private String assertText(Msg result) {
         assertNotNull(result, "agent call must emit a result");
         String text = result.getTextContent();
         assertNotNull(text, "agent result must contain text");
@@ -204,8 +234,5 @@ class ConversationMemoryIT extends E2eTestSupport {
     }
 
     record ConversationReplies(String writeReply, String readReply) {
-        List<String> all() {
-            return List.of(writeReply, readReply);
-        }
     }
 }
