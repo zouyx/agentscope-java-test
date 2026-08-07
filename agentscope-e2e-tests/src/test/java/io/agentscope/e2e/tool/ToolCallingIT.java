@@ -202,7 +202,8 @@ class ToolCallingIT extends E2eTestSupport {
 
     private String concurrentToolPrompt() {
         return "You must call echo_token exactly once with the token requested by the user. "
-                + "After it succeeds, reply only RESULT=<returned value>.";
+                + "After it succeeds, reply only with the exact value returned by the tool. "
+                + "Do not add, remove, or change any characters.";
     }
 
     private String callConcurrentTool(ReActAgent agent, String token) {
@@ -218,7 +219,7 @@ class ToolCallingIT extends E2eTestSupport {
 
     private void assertToolInvocation(ConcurrentEchoTool tool, String expectedToken) {
         assertEquals(1, tool.invocationCount.get(), "the concurrent tool must be invoked exactly once");
-        assertEquals(List.of(new ToolInvocation(expectedToken, expectedToken)),
+        assertEquals(List.of(new ToolInvocation(expectedToken, "RESULT=" + expectedToken)),
                 List.copyOf(tool.invocations),
                 "the concurrent tool must record only its own argument and result");
     }
@@ -287,9 +288,9 @@ class ToolCallingIT extends E2eTestSupport {
         private final AtomicInteger invocationCount = new AtomicInteger();
         private final ConcurrentLinkedQueue<ToolInvocation> invocations = new ConcurrentLinkedQueue<>();
 
-        @Tool(name = "echo_token", description = "Returns the supplied token unchanged.")
+        @Tool(name = "echo_token", description = "Returns the supplied token as RESULT=<token>.")
         public String echo(@ToolParam(name = "token") String token) {
-            String result = token;
+            String result = "RESULT=" + token;
             invocations.add(new ToolInvocation(token, result));
             invocationCount.incrementAndGet();
             return result;

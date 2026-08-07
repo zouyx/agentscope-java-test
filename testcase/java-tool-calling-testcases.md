@@ -119,7 +119,7 @@
 
 **步骤：**
 
-1. 为两个 Agent 生成不同随机 token，各自注册同名 `echo_token` 工具；工具原样返回 token，Agent 回复 `RESULT=<token>`。
+1. 为两个 Agent 生成不同随机 token，各自注册同名 `echo_token` 工具；工具返回 `RESULT=<token>`，Agent 原样返回该值。
 2. 在固定线程池中同时要求两个 Agent 调用工具一次并返回实际结果。
 3. 在 50 秒整体等待内收集回复，检查每个工具的线程安全调用记录，最后取消未完成任务并等待线程池终止。
 
