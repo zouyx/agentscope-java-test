@@ -8,8 +8,15 @@ import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.e2e.support.E2eTestSupport;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -17,6 +24,7 @@ class ConversationMemoryIT extends E2eTestSupport {
     private static final String MEMORY_PROMPT = """
             You are testing conversation memory. Follow these rules exactly:
             - Remember project codes supplied by the user during this conversation.
+            - When supplied a project code, reply only SAVED=<supplied code>.
             - When asked for the current project code, reply only CODE=<current code>.
             - If no project code was supplied in this conversation, reply only UNKNOWN.
             - A newer project code replaces an older project code.
@@ -52,6 +60,45 @@ class ConversationMemoryIT extends E2eTestSupport {
                 () -> "Project code leaked to an independent agent: " + agentBReply);
         assertTrue(agentAReply.contains(code),
                 () -> "Original agent did not retain its code: " + agentAReply);
+    }
+
+    @Test
+    @Timeout(60)
+    void shouldIsolateConcurrentCallsAcrossAgents() throws Exception {
+        int agentCount = 3;
+        List<String> codes = new ArrayList<>();
+        List<ReActAgent> agents = new ArrayList<>();
+        for (int index = 0; index < agentCount; index++) {
+            codes.add(uniqueCode("CONCURRENT"));
+            agents.add(createMemoryAgent("concurrent-isolation-agent-" + index));
+        }
+
+        List<Callable<ConversationReplies>> calls = new ArrayList<>();
+        for (int index = 0; index < agentCount; index++) {
+            ReActAgent agent = agents.get(index);
+            String code = codes.get(index);
+            calls.add(() -> {
+                String writeReply = assertText(agent,
+                        "Remember that my project code is " + code + ".");
+                String readReply = assertText(agent, "What is my current project code?");
+                return new ConversationReplies(writeReply, readReply);
+            });
+        }
+
+        List<ConversationReplies> replies = runConcurrently(calls, Duration.ofSeconds(50));
+        for (int index = 0; index < agentCount; index++) {
+            String ownCode = codes.get(index);
+            for (String reply : replies.get(index).all()) {
+                assertTrue(reply.contains(ownCode),
+                        () -> "Agent did not return its own code: " + reply);
+                for (String otherCode : codes) {
+                    if (!otherCode.equals(ownCode)) {
+                        assertFalse(reply.contains(otherCode),
+                                () -> "Concurrent agent response leaked another code: " + reply);
+                    }
+                }
+            }
+        }
     }
 
     @Test
@@ -132,5 +179,33 @@ class ConversationMemoryIT extends E2eTestSupport {
 
     private String uniqueCode(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private <T> List<T> runConcurrently(List<? extends Callable<T>> calls, Duration timeout)
+            throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(calls.size());
+        List<Future<T>> futures = List.of();
+        try {
+            futures = executor.invokeAll(calls, timeout.toMillis(), TimeUnit.MILLISECONDS);
+            List<T> results = new ArrayList<>();
+            for (Future<T> future : futures) {
+                assertFalse(future.isCancelled(), "concurrent agent call timed out");
+                results.add(future.get());
+            }
+            return results;
+        } finally {
+            for (Future<T> future : futures) {
+                future.cancel(true);
+            }
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS),
+                    "concurrent agent tasks did not terminate");
+        }
+    }
+
+    record ConversationReplies(String writeReply, String readReply) {
+        List<String> all() {
+            return List.of(writeReply, readReply);
+        }
     }
 }

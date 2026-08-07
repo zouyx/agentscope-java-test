@@ -10,8 +10,8 @@ of inspecting framework internals.
 | --- | --- | --- | --- |
 | Basic model call | `ModelSmokeIT` | [`model-call-testcases.md`](testcase/model-call-testcases.md) | Requests stay isolated and unavailable models fail clearly |
 | Streaming output | `StreamingIT` | [`streaming-output-testcases.md`](testcase/streaming-output-testcases.md) | Text events can be combined and service failures terminate with an error |
-| Java tool calling | `ToolCallingIT` | [`java-tool-calling-testcases.md`](testcase/java-tool-calling-testcases.md) | The correct tool and arguments are used; unknown or failing tools never look successful |
-| Multi-turn memory | `ConversationMemoryIT` | [`conversation-memory-testcases.md`](testcase/conversation-memory-testcases.md) | The Agent remembers, isolates, resets, and updates conversation data in order |
+| Java tool calling | `ToolCallingIT` | [`java-tool-calling-testcases.md`](testcase/java-tool-calling-testcases.md) | The correct tool and arguments are used; concurrent calls stay isolated; unknown or failing tools never look successful |
+| Multi-turn memory | `ConversationMemoryIT` | [`conversation-memory-testcases.md`](testcase/conversation-memory-testcases.md) | The Agent remembers, isolates, resets, updates conversation data in order, and keeps simultaneous conversations separate |
 
 See [`agent.md`](agent.md) for test principles, scenario design, and the checklist for adding
 test cases. See
