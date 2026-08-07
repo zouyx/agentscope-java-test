@@ -203,7 +203,8 @@ class ToolCallingIT extends E2eTestSupport {
     private String concurrentToolPrompt() {
         return "You must call echo_token exactly once with the token requested by the user. "
                 + "After it succeeds, reply only with the exact value returned by the tool. "
-                + "Do not add, remove, or change any characters.";
+                + "Do not add, remove, or change any characters. Do not surround the value "
+                + "with quotation marks or a code fence.";
     }
 
     private String callConcurrentTool(ReActAgent agent, String token) {
