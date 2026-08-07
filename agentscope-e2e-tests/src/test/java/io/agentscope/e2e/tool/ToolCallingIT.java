@@ -100,11 +100,11 @@ class ToolCallingIT extends E2eTestSupport {
 
         assertToolInvocation(firstTool, firstToken);
         assertToolInvocation(secondTool, secondToken);
-        assertEquals("RESULT=" + firstToken, replies.get(0).trim(),
+        assertEquals("RESULT=" + firstToken, normalizeProtocolReply(replies.get(0)),
                 () -> "Unexpected first concurrent result: " + replies.get(0));
         assertFalse(replies.get(0).contains(secondToken),
                 () -> "First concurrent result leaked the other token: " + replies.get(0));
-        assertEquals("RESULT=" + secondToken, replies.get(1).trim(),
+        assertEquals("RESULT=" + secondToken, normalizeProtocolReply(replies.get(1)),
                 () -> "Unexpected second concurrent result: " + replies.get(1));
         assertFalse(replies.get(1).contains(firstToken),
                 () -> "Second concurrent result leaked the other token: " + replies.get(1));
@@ -227,6 +227,14 @@ class ToolCallingIT extends E2eTestSupport {
 
     private String uniqueToken() {
         return "TOKEN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeProtocolReply(String reply) {
+        String trimmed = reply.trim();
+        if (trimmed.length() >= 2 && trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
+            return trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private <T> List<T> runConcurrently(List<? extends Callable<T>> calls, Duration timeout)
