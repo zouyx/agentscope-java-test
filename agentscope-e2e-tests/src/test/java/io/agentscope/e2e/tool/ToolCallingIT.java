@@ -111,8 +111,8 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(120)
-    void shouldReportToolFailureWithoutClaimingSuccess() {
+    @Timeout(60)
+    void shouldNotRetryFailedSideEffectingToolByDefault() {
         FailingOperation failingOperation = new FailingOperation();
         ReActAgent agent = createToolAgent(
                 "tool-failure-e2e-agent",
@@ -131,8 +131,8 @@ class ToolCallingIT extends E2eTestSupport {
             failure = error;
         }
 
-        assertTrue(failingOperation.invocationCount.get() >= 1,
-                "the requested failing tool operation must be invoked");
+        assertEquals(1, failingOperation.invocationCount.get(),
+                "a failed side-effecting tool must not be retried by default");
         if (failure != null) {
             assertTrue(hasMessageInCauseChain(failure, "controlled tool failure"),
                     "Unexpected propagated tool failure: " + failure);
@@ -147,6 +147,67 @@ class ToolCallingIT extends E2eTestSupport {
                 () -> "Tool failure was not reported: " + text);
         assertFalse(text.contains("RESULT=SUCCESS"),
                 () -> "Tool failure was reported as success: " + text);
+    }
+
+    @Test
+    @Timeout(60)
+    void shouldBindComplexJavaToolArguments() {
+        String note = "发布 \"北极星\" release " + uniqueToken();
+        ComplexArgumentsTool tool = new ComplexArgumentsTool();
+        ReActAgent agent = createToolAgent(
+                "complex-tool-arguments-e2e-agent",
+                "You must call format_release exactly once with every value supplied by the "
+                        + "user. Preserve strings character for character. After it succeeds, "
+                        + "reply only with the exact value returned by the tool.",
+                tool);
+
+        Msg result = agent.call(List.of(new UserMessage("""
+                        Call format_release exactly once with note=%s, urgent=true,
+                        channel=CANARY, and retry_limit=-1. Return its exact result.
+                        """.formatted(note))))
+                .block();
+
+        assertNotNull(result, "complex-argument tool call must emit a result");
+        assertEquals(1, tool.invocationCount.get(), "format_release must be invoked exactly once");
+        assertEquals(note, tool.lastNote, "Unicode, spaces, and quotes must be preserved");
+        assertTrue(tool.lastUrgent, "boolean argument must be bound as true");
+        assertEquals(ReleaseChannel.CANARY, tool.lastChannel, "enum argument must be bound");
+        assertEquals(-1, tool.lastRetryLimit, "negative numeric argument must be bound");
+        String text = result.getTextContent();
+        assertNotNull(text, "complex-argument result must contain text");
+        assertFalse(text.isBlank(), "complex-argument result text must not be blank");
+        assertTrue(text.contains(tool.lastResult),
+                () -> "Agent did not return the tool's business result: " + text);
+    }
+
+    @Test
+    @Timeout(60)
+    void shouldUseFirstToolResultAsSecondToolArgument() {
+        String seed = uniqueToken();
+        ChainedTools tools = new ChainedTools();
+        ReActAgent agent = createToolAgent(
+                "tool-chain-e2e-agent",
+                "Complete the requested two-step workflow. Call create_code exactly once, then "
+                        + "call confirm_code exactly once using the exact value returned by "
+                        + "create_code. Reply only with the exact confirm_code result.",
+                tools);
+
+        Msg result = agent.call(List.of(new UserMessage(
+                        "First call create_code with seed=\"" + seed + "\". Then pass its exact "
+                                + "return value to confirm_code as code.")))
+                .block();
+
+        assertNotNull(result, "tool-chain call must emit a result");
+        String generatedCode = "CODE-" + seed;
+        assertEquals(List.of("create:" + seed, "confirm:" + generatedCode),
+                List.copyOf(tools.invocations), "tools must run in order with the real result");
+        assertEquals(1, tools.createCount.get(), "create_code must run exactly once");
+        assertEquals(1, tools.confirmCount.get(), "confirm_code must run exactly once");
+        String text = result.getTextContent();
+        assertNotNull(text, "tool-chain result must contain text");
+        assertFalse(text.isBlank(), "tool-chain result text must not be blank");
+        assertTrue(text.contains("CONFIRMED=" + generatedCode),
+                () -> "Unexpected tool-chain result: " + text);
     }
 
     @Test
@@ -290,6 +351,55 @@ class ToolCallingIT extends E2eTestSupport {
         public String fail() {
             invocationCount.incrementAndGet();
             throw new IllegalStateException("controlled tool failure");
+        }
+    }
+
+    enum ReleaseChannel {
+        CANARY,
+        STABLE
+    }
+
+    static final class ComplexArgumentsTool {
+        private final AtomicInteger invocationCount = new AtomicInteger();
+        private String lastNote;
+        private boolean lastUrgent;
+        private ReleaseChannel lastChannel;
+        private int lastRetryLimit;
+        private String lastResult;
+
+        @Tool(name = "format_release", description = "Formats all supplied release fields.")
+        public String format(
+                @ToolParam(name = "note") String note,
+                @ToolParam(name = "urgent") boolean urgent,
+                @ToolParam(name = "channel") ReleaseChannel channel,
+                @ToolParam(name = "retry_limit") int retryLimit) {
+            invocationCount.incrementAndGet();
+            lastNote = note;
+            lastUrgent = urgent;
+            lastChannel = channel;
+            lastRetryLimit = retryLimit;
+            lastResult = "FORMATTED=" + note + "|" + urgent + "|" + channel + "|" + retryLimit;
+            return lastResult;
+        }
+    }
+
+    static final class ChainedTools {
+        private final AtomicInteger createCount = new AtomicInteger();
+        private final AtomicInteger confirmCount = new AtomicInteger();
+        private final ConcurrentLinkedQueue<String> invocations = new ConcurrentLinkedQueue<>();
+
+        @Tool(name = "create_code", description = "Creates a code from the supplied seed.")
+        public String create(@ToolParam(name = "seed") String seed) {
+            createCount.incrementAndGet();
+            invocations.add("create:" + seed);
+            return "CODE-" + seed;
+        }
+
+        @Tool(name = "confirm_code", description = "Confirms a code created by create_code.")
+        public String confirm(@ToolParam(name = "code") String code) {
+            confirmCount.incrementAndGet();
+            invocations.add("confirm:" + code);
+            return "CONFIRMED=" + code;
         }
     }
 
