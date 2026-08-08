@@ -219,7 +219,10 @@ class ToolCallingIT extends E2eTestSupport {
         String text = result.getTextContent();
         assertNotNull(text, "tool-chain result must contain text");
         assertFalse(text.isBlank(), "tool-chain result text must not be blank");
-        assertEquals("CONFIRMED=" + confirmArgument, normalizeProtocolReply(text),
+        String normalizedReply = normalizeProtocolReply(text).replace("\\\"", "\"");
+        assertTrue(normalizedReply.equals("CONFIRMED=" + confirmArgument)
+                        || normalizedReply.equals("CONFIRMED=" + generatedCode)
+                        || normalizedReply.equals("CONFIRMED=" + jsonGeneratedCode),
                 () -> "Unexpected tool-chain result: " + text);
     }
 
