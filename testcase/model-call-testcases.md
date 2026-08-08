@@ -8,7 +8,7 @@
 | 目标版本 | `2.0.0`（与本仓库 `pom.xml` 的 `agentscope.version` 一致） |
 | 被测模块 | `ReActAgent` 的模型配置与同步调用用户路径 |
 | 测试级别 | 用户视角端到端集成测试 |
-| 关联自动化 | `agentscope-e2e-tests/src/test/java/io/agentscope/e2e/model/ModelSmokeIT.java` |
+| 关联自动化 | `ModelSmokeIT`、`ModelResilienceIT` |
 | 文档状态 | 已实现 |
 
 ## 2. 测试目标与范围
@@ -114,6 +114,35 @@
 
 **清理：** 每个 HTTP 场景在 `finally` 中停止回环模拟服务；不创建容器、不访问真实模型，也不记录
 凭据或请求中的用户数据。
+
+### TC-MODEL-005：限流响应按有界退避重试并恢复
+
+| 项目 | 内容 |
+| --- | --- |
+| 优先级 | P2 |
+| 用户目标 | 模型服务返回带 `Retry-After` 的 429 后，通过公开重试配置等待并再次调用。 |
+| 前置条件 | 启动仅绑定本机随机端口的可控 Ollama 协议服务；首次返回 429，第二次返回有效结果。 |
+| 自动化状态 | 已由 `ModelResilienceIT.shouldRespectRetryAfterForRateLimitedModelRequest` 覆盖。 |
+
+**步骤：** 配置最多 2 次尝试，且 `initialBackoff` 与 `maxBackoff` 都为 10 ms；由模型返回
+`Retry-After: 1` 提供 1 秒等待；调用 Agent；记录请求次数、总耗时及最终文本。
+
+**预期结果：** 首次 429 后不会立即重放；只重试一次；最终返回非空 `RESULT=OK`，总耗时不短于
+允许调度误差后的退避下限。服务和执行器在用例结束时关闭。
+
+### TC-MODEL-006：短暂服务故障的重试次数有界
+
+| 项目 | 内容 |
+| --- | --- |
+| 优先级 | P2 |
+| 用户目标 | 持续 503 时，请求在配置次数内停止并保留可诊断错误。 |
+| 前置条件 | 本地可控服务对每次调用返回包含临时故障说明的 503。 |
+| 自动化状态 | 已由 `ModelResilienceIT.shouldBoundRetriesForTransientModelFailure` 覆盖。 |
+
+**步骤：** 配置最多 3 次尝试和短退避；发起调用；捕获最终异常并检查服务计数。
+
+**预期结果：** 总调用次数恰好为 3；调用以异常而非空成功结束；异常 cause chain 保留 503 或服务
+故障诊断。失败诊断应区分服务持续不可用和 SDK 超出重试上限。
 
 ## 4. 清理与通过标准
 

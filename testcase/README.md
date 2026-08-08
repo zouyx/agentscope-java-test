@@ -8,13 +8,13 @@
 
 | 用户模块 | 测试用例文档 | 自动化测试类 | 优先级 |
 | --- | --- | --- | --- |
-| 基础模型调用与错误配置 | [model-call-testcases.md](model-call-testcases.md) | `ModelSmokeIT` | P0 / P1 / P2 |
+| 基础模型调用、错误配置与韧性 | [model-call-testcases.md](model-call-testcases.md) | `ModelSmokeIT`、`ModelResilienceIT` | P0 / P1 / P2 |
 | 流式输出 | [streaming-output-testcases.md](streaming-output-testcases.md) | `StreamingIT` | P1 |
 | Java 工具调用 | [java-tool-calling-testcases.md](java-tool-calling-testcases.md) | `ToolCallingIT` | P0 |
 | 多轮会话记忆 | [conversation-memory-testcases.md](conversation-memory-testcases.md) | `ConversationMemoryIT` | P0 / P1 |
 | 补充方案 | [additional-testcases.md](additional-testcases.md) | `ModelSmokeIT`、`ConversationMemoryIT`、`ToolCallingIT` | P0 / P2（其余待实施） |
 
-当前文档与自动化的对应关系为 18 个用例：基础模型调用 4 个、流式输出 3 个、Java 工具调用
+当前文档与自动化的对应关系为 20 个用例：基础模型调用、错误配置与韧性 6 个、流式输出 3 个、Java 工具调用
 5 个、多轮会话记忆 6 个。修改 `*IT` 中的测试方法时，应同步检查对应设计文档和本索引中的
 数量及优先级。
 
