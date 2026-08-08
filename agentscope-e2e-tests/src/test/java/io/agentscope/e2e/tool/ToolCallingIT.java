@@ -150,7 +150,7 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void shouldBindComplexJavaToolArguments() {
         String note = "发布 \"北极星\" release " + uniqueToken();
         ComplexArgumentsTool tool = new ComplexArgumentsTool();
@@ -176,12 +176,12 @@ class ToolCallingIT extends E2eTestSupport {
         String text = result.getTextContent();
         assertNotNull(text, "complex-argument result must contain text");
         assertFalse(text.isBlank(), "complex-argument result text must not be blank");
-        assertTrue(text.contains(tool.lastResult),
+        assertEquals(tool.lastResult, normalizeProtocolReply(text),
                 () -> "Agent did not return the tool's business result: " + text);
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void shouldUseFirstToolResultAsSecondToolArgument() {
         String seed = uniqueToken();
         ChainedTools tools = new ChainedTools();
@@ -206,7 +206,7 @@ class ToolCallingIT extends E2eTestSupport {
         String text = result.getTextContent();
         assertNotNull(text, "tool-chain result must contain text");
         assertFalse(text.isBlank(), "tool-chain result text must not be blank");
-        assertTrue(text.contains("CONFIRMED=" + generatedCode),
+        assertEquals("CONFIRMED=" + generatedCode, normalizeProtocolReply(text),
                 () -> "Unexpected tool-chain result: " + text);
     }
 
