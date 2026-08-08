@@ -127,9 +127,9 @@ class ModelSmokeIT extends E2eTestSupport {
                                 List.of("url", "uri", "scheme", "timeout"))),
                 httpFailure("HTTP 401", 401, "unauthorized", "401"),
                 httpFailure("HTTP 403", 403, "forbidden", "403"),
-                httpFailure("HTTP 429", 429, "rate limited", "429"),
-                httpFailure("HTTP 500", 500, "server error", "500"),
-                httpFailure("HTTP 503", 503, "unavailable", "503"),
+                httpFailure("HTTP 429", 429, "rate limited", "429", "timeout"),
+                httpFailure("HTTP 500", 500, "server error", "500", "timeout"),
+                httpFailure("HTTP 503", 503, "unavailable", "503", "timeout"),
                 serverFailure(
                         "server accepts connection but does not respond",
                         exchange -> sleepWithoutResponding(),
@@ -156,9 +156,8 @@ class ModelSmokeIT extends E2eTestSupport {
             String description, int status, String body, String... expectedDiagnostics) {
         return serverFailure(
                 description,
-                exchange -> respond(exchange, status, body),
-                Stream.concat(Arrays.stream(expectedDiagnostics), Stream.of("timeout"))
-                        .toArray(String[]::new));
+                exchange -> respond(exchange, status, body, "text/plain; charset=utf-8"),
+                expectedDiagnostics);
     }
 
     private static Arguments serverFailure(
@@ -228,8 +227,13 @@ class ModelSmokeIT extends E2eTestSupport {
     }
 
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {
+        respond(exchange, status, body, "application/json");
+    }
+
+    private static void respond(HttpExchange exchange, int status, String body, String contentType)
+            throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.getResponseHeaders().set("Content-Type", contentType);
         exchange.sendResponseHeaders(status, bytes.length);
         exchange.getResponseBody().write(bytes);
     }
