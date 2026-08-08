@@ -83,6 +83,7 @@
 
 - 建议位置：`ModelSmokeIT`，可新增本地模拟服务的辅助类。
 - 建议名称：`shouldReportDiagnosableFailuresForInvalidModelConfiguration`
+- 实施状态：已实现；详细步骤和判定规则见 `model-call-testcases.md` 的 `TC-MODEL-004`。
 - 覆盖场景：空模型 ID、缺失 provider 前缀、未知 provider、格式错误的 base URL、401/403、429、500/503、连接成功但不响应、malformed JSON 和不完整协议响应。
 - 断言：在限定时间内失败；异常消息或 cause chain 能表明模型、HTTP 状态、连接或协议诊断；不能以空成功结果结束。
 
