@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -33,29 +34,34 @@ class ModelResilienceIT {
     @Timeout(15)
     void shouldRespectRetryAfterForRateLimitedModelRequest() throws Exception {
         AtomicInteger requests = new AtomicInteger();
+        AtomicLong firstRequestAt = new AtomicLong();
+        AtomicLong secondRequestAt = new AtomicLong();
         try (StubOllamaServer server = new StubOllamaServer(exchange -> {
             if (requests.incrementAndGet() == 1) {
+                firstRequestAt.set(System.nanoTime());
                 exchange.getResponseHeaders().add("Retry-After", "1");
                 respond(exchange, 429, "{\"error\":\"rate limit exceeded\"}");
             } else {
+                secondRequestAt.compareAndSet(0L, System.nanoTime());
                 respond(exchange, 200, SUCCESS_RESPONSE);
             }
         })) {
             ReActAgent agent = createAgent(server, ExecutionConfig.builder()
                     .timeout(Duration.ofSeconds(10))
                     .maxAttempts(2)
-                    .initialBackoff(Duration.ofSeconds(1))
-                    .maxBackoff(Duration.ofSeconds(1))
+                    .initialBackoff(Duration.ofMillis(10))
+                    .maxBackoff(Duration.ofMillis(10))
                     .build());
 
-            long startedAt = System.nanoTime();
             Msg result = call(agent);
-            Duration elapsed = Duration.ofNanos(System.nanoTime() - startedAt);
+            Duration retryDelay = Duration.ofNanos(secondRequestAt.get() - firstRequestAt.get());
 
             assertSuccessfulResult(result);
             assertEquals(2, requests.get(), "one rate-limited request should produce one retry");
-            assertTrue(elapsed.compareTo(Duration.ofMillis(900)) >= 0,
-                    () -> "retry occurred before the configured Retry-After interval: " + elapsed);
+            assertTrue(firstRequestAt.get() > 0 && secondRequestAt.get() > 0,
+                    "test must observe both first and second request timestamps");
+            assertTrue(retryDelay.compareTo(Duration.ofMillis(900)) >= 0,
+                    () -> "retry occurred before the Retry-After interval: " + retryDelay);
         }
     }
 
@@ -125,10 +131,13 @@ class ModelResilienceIT {
 
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/x-ndjson");
-        exchange.sendResponseHeaders(status, bytes.length);
-        exchange.getResponseBody().write(bytes);
-        exchange.close();
+        try {
+            exchange.getResponseHeaders().set("Content-Type", "application/x-ndjson");
+            exchange.sendResponseHeaders(status, bytes.length);
+            exchange.getResponseBody().write(bytes);
+        } finally {
+            exchange.close();
+        }
     }
 
     @FunctionalInterface
