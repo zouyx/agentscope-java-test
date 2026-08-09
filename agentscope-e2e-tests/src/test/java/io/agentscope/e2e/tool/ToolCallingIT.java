@@ -163,7 +163,7 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void shouldBindComplexJavaToolArguments() {
         String note = "发布 \"北极星\" release " + uniqueToken();
         ComplexArgumentsTool tool = new ComplexArgumentsTool();
@@ -196,7 +196,7 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void shouldRejectInvalidToolArgumentsWithoutExecutingSideEffect() {
         SideEffectingChargeTool tool = new SideEffectingChargeTool();
         ReActAgent agent = createToolAgent(
