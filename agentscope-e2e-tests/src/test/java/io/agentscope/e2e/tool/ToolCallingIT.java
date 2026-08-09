@@ -11,6 +11,7 @@ import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
+import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolCallParam;
 import io.agentscope.core.tool.ToolParam;
@@ -174,7 +175,7 @@ class ToolCallingIT extends E2eTestSupport {
         ChainedTools tools = new ChainedTools();
         ReActAgent agent = createToolAgentWithMaxIters(
                 "tool-chain-e2e-agent",
-                "Complete the requested two-step workflow. Call create_code exactly once, then "
+                "/no_think\nComplete the requested two-step workflow. Call create_code exactly once, then "
                         + "call confirm_code exactly once using the exact value returned by "
                         + "create_code. Its result starts with CHAIN-CODE-. Copy that complete "
                         + "result into confirm_code.code; never invent, infer, hash, or transform "
@@ -183,7 +184,7 @@ class ToolCallingIT extends E2eTestSupport {
                 tools);
 
         Msg result = agent.call(List.of(new UserMessage(
-                        "First call create_code with seed=\"" + seed + "\". Wait for its tool "
+                        "/no_think\nFirst call create_code with seed=\"" + seed + "\". Wait for its tool "
                                 + "result, then copy the complete CHAIN-CODE- value verbatim into "
                                 + "confirm_code.code. Do not generate the code yourself.")))
                 .block();
@@ -335,6 +336,10 @@ class ToolCallingIT extends E2eTestSupport {
                 .model(MODEL_ID)
                 .toolkit(toolkit)
                 .maxIters(maxIters)
+                .generateOptions(GenerateOptions.builder()
+                        .temperature(0.0)
+                        .maxTokens(256)
+                        .build())
                 .build();
     }
 
