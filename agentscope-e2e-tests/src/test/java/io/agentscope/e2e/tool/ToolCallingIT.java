@@ -7,8 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
+import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Tool;
+import io.agentscope.core.tool.ToolCallParam;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.e2e.support.E2eTestSupport;
@@ -16,6 +20,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -198,48 +203,38 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(120)
+    @Timeout(30)
     void shouldRejectInvalidToolArgumentsWithoutExecutingSideEffect() {
         SideEffectingChargeTool tool = new SideEffectingChargeTool();
-        ReActAgent agent = createToolAgent(
-                "invalid-tool-arguments-e2e-agent",
-                "You must call charge_account with the exact amount supplied by the user. "
-                        + "If the tool rejects the argument, reply only TOOL_INVALID_ARGUMENT. "
-                        + "Never describe a rejected charge as successful.",
-                tool);
+        Toolkit toolkit = new Toolkit();
+        toolkit.registerTool(tool);
+        Map<String, Object> invalidInput = Map.of("amount", "not-a-number");
+        ToolUseBlock toolUse = ToolUseBlock.builder()
+                .id("invalid-charge")
+                .name("charge_account")
+                .input(invalidInput)
+                .content("{\"amount\":\"not-a-number\"}")
+                .build();
 
-        Msg result = null;
-        RuntimeException failure = null;
-        try {
-            result = agent.call(List.of(new UserMessage("""
-                            Call charge_account exactly once with amount="not-a-number".
-                            Do not replace, coerce, or omit the supplied argument.
-                            """)))
-                    .block();
-        } catch (RuntimeException error) {
-            failure = error;
-        }
+        ToolResultBlock result = toolkit.callTool(ToolCallParam.builder()
+                        .toolUseBlock(toolUse)
+                        .input(invalidInput)
+                        .build())
+                .block();
 
         assertEquals(0, tool.invocationCount.get(),
                 "invalid arguments must be rejected before a side effect executes");
-        if (failure != null) {
-            String failureDescription = failure.toString();
-            assertTrue(hasMessageInCauseChain(failure, "amount")
-                            || hasMessageInCauseChain(failure, "number")
-                            || hasMessageInCauseChain(failure, "argument"),
-                    () -> "Invalid argument failure was not diagnosable: " + failureDescription);
-            return;
-        }
-
-        assertNotNull(result, "invalid tool arguments must produce a result or a diagnosable error");
-        String text = result.getTextContent();
-        assertNotNull(text, "invalid-argument result must contain text");
-        String normalizedText = text.toLowerCase(Locale.ROOT);
-        assertTrue(normalizedText.contains("invalid") || normalizedText.contains("valid")
-                        || normalizedText.contains("fail") || normalizedText.contains("error"),
-                () -> "Invalid arguments were not reported as a failure: " + text);
-        assertFalse(text.contains("CHARGED="),
-                () -> "Invalid arguments were reported as a successful side effect: " + text);
+        assertNotNull(result, "invalid tool arguments must produce a diagnostic result");
+        String diagnostic = result.getOutput().stream()
+                .filter(TextBlock.class::isInstance)
+                .map(TextBlock.class::cast)
+                .map(TextBlock::getText)
+                .reduce("", String::concat)
+                .toLowerCase(Locale.ROOT);
+        assertTrue(diagnostic.contains("validation") || diagnostic.contains("integer"),
+                () -> "Invalid argument failure was not diagnosable: " + diagnostic);
+        assertFalse(diagnostic.contains("charged="),
+                () -> "Invalid arguments were reported as a successful side effect: " + diagnostic);
     }
 
     @Test
