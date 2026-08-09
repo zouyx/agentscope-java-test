@@ -150,6 +150,48 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
+    @Timeout(120)
+    void shouldUseFirstToolResultAsSecondToolArgument() {
+        String seed = uniqueToken();
+        ChainedTools tools = new ChainedTools();
+        ReActAgent agent = createToolAgent(
+                "tool-chain-e2e-agent",
+                "Complete the requested two-step workflow. Call create_code exactly once, then "
+                        + "call confirm_code exactly once using the exact value returned by "
+                        + "create_code. Reply only with the exact confirm_code result.",
+                tools);
+
+        Msg result = agent.call(List.of(new UserMessage(
+                        "First call create_code with seed=\"" + seed + "\". Then pass its exact "
+                                + "return value to confirm_code as code.")))
+                .block();
+
+        assertNotNull(result, "tool-chain call must emit a result");
+        String generatedCode = tools.createdCode;
+        assertNotNull(generatedCode, "create_code must produce an opaque code");
+        List<String> invocationList = List.copyOf(tools.invocations);
+        assertEquals(2, invocationList.size(), "tool chain must invoke exactly two tool calls");
+        assertEquals("create:" + seed, invocationList.get(0), "create_code must run first");
+        assertTrue(invocationList.get(1).startsWith("confirm:"),
+                () -> "confirm_code must run second: " + invocationList);
+        String confirmArgument = invocationList.get(1).substring("confirm:".length());
+        String jsonGeneratedCode = "{\"code\":\"" + generatedCode + "\"}";
+        assertTrue(confirmArgument.equals(generatedCode)
+                        || confirmArgument.equals(jsonGeneratedCode),
+                () -> "confirm_code did not receive create_code's result: " + invocationList);
+        assertEquals(1, tools.createCount.get(), "create_code must run exactly once");
+        assertEquals(1, tools.confirmCount.get(), "confirm_code must run exactly once");
+        String text = result.getTextContent();
+        assertNotNull(text, "tool-chain result must contain text");
+        assertFalse(text.isBlank(), "tool-chain result text must not be blank");
+        String normalizedReply = normalizeProtocolReply(text).replace("\\\"", "\"");
+        assertTrue(normalizedReply.equals("CONFIRMED=" + confirmArgument)
+                        || normalizedReply.equals("CONFIRMED=" + generatedCode)
+                        || normalizedReply.equals("CONFIRMED=" + jsonGeneratedCode),
+                () -> "Unexpected tool-chain result: " + text);
+    }
+
+    @Test
     @Timeout(60)
     void shouldNotInvokeRegisteredToolForUnknownToolRequest() {
         AddNumbers addNumbers = new AddNumbers();
@@ -290,6 +332,28 @@ class ToolCallingIT extends E2eTestSupport {
         public String fail() {
             invocationCount.incrementAndGet();
             throw new IllegalStateException("controlled tool failure");
+        }
+    }
+
+    static final class ChainedTools {
+        private final AtomicInteger createCount = new AtomicInteger();
+        private final AtomicInteger confirmCount = new AtomicInteger();
+        private final ConcurrentLinkedQueue<String> invocations = new ConcurrentLinkedQueue<>();
+        private String createdCode;
+
+        @Tool(name = "create_code", description = "Creates a code from the supplied seed.")
+        public String create(@ToolParam(name = "seed") String seed) {
+            createCount.incrementAndGet();
+            invocations.add("create:" + seed);
+            createdCode = "CODE-" + UUID.randomUUID();
+            return createdCode;
+        }
+
+        @Tool(name = "confirm_code", description = "Confirms a code created by create_code.")
+        public String confirm(@ToolParam(name = "code") String code) {
+            confirmCount.incrementAndGet();
+            invocations.add("confirm:" + code);
+            return "CONFIRMED=" + code;
         }
     }
 
