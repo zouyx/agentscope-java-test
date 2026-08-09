@@ -151,6 +151,82 @@ class ToolCallingIT extends E2eTestSupport {
 
     @Test
     @Timeout(60)
+    void shouldBindComplexJavaToolArguments() {
+        String note = "发布 \"北极星\" release " + uniqueToken();
+        ComplexArgumentsTool tool = new ComplexArgumentsTool();
+        ReActAgent agent = createToolAgent(
+                "complex-tool-arguments-e2e-agent",
+                "You must call format_release exactly once with every value supplied by the "
+                        + "user. Preserve strings character for character. After it succeeds, "
+                        + "reply only with the exact value returned by the tool.",
+                tool);
+
+        Msg result = agent.call(List.of(new UserMessage("""
+                        Call format_release exactly once with note=%s, urgent=true,
+                        channel=CANARY, and retry_limit=-1. Return its exact result.
+                        """.formatted(note))))
+                .block();
+
+        assertNotNull(result, "complex-argument tool call must emit a result");
+        assertEquals(1, tool.invocationCount.get(), "format_release must be invoked exactly once");
+        assertEquals(note, tool.lastNote, "Unicode, spaces, and quotes must be preserved");
+        assertTrue(tool.lastUrgent, "boolean argument must be bound as true");
+        assertEquals(ReleaseChannel.CANARY, tool.lastChannel, "enum argument must be bound");
+        assertEquals(-1, tool.lastRetryLimit, "negative numeric argument must be bound");
+        String text = result.getTextContent();
+        assertNotNull(text, "complex-argument result must contain text");
+        assertFalse(text.isBlank(), "complex-argument result text must not be blank");
+        assertTrue(text.contains(tool.lastResult),
+                () -> "Agent did not return the tool's business result: " + text);
+    }
+
+    @Test
+    @Timeout(60)
+    void shouldRejectInvalidToolArgumentsWithoutExecutingSideEffect() {
+        SideEffectingChargeTool tool = new SideEffectingChargeTool();
+        ReActAgent agent = createToolAgent(
+                "invalid-tool-arguments-e2e-agent",
+                "You must call charge_account with the exact amount supplied by the user. "
+                        + "If the tool rejects the argument, reply only TOOL_INVALID_ARGUMENT. "
+                        + "Never describe a rejected charge as successful.",
+                tool);
+
+        Msg result = null;
+        RuntimeException failure = null;
+        try {
+            result = agent.call(List.of(new UserMessage("""
+                            Call charge_account exactly once with amount="not-a-number".
+                            Do not replace, coerce, or omit the supplied argument.
+                            """)))
+                    .block();
+        } catch (RuntimeException error) {
+            failure = error;
+        }
+
+        assertEquals(0, tool.invocationCount.get(),
+                "invalid arguments must be rejected before a side effect executes");
+        if (failure != null) {
+            String failureDescription = failure.toString();
+            assertTrue(hasMessageInCauseChain(failure, "amount")
+                            || hasMessageInCauseChain(failure, "number")
+                            || hasMessageInCauseChain(failure, "argument"),
+                    () -> "Invalid argument failure was not diagnosable: " + failureDescription);
+            return;
+        }
+
+        assertNotNull(result, "invalid tool arguments must produce a result or a diagnosable error");
+        String text = result.getTextContent();
+        assertNotNull(text, "invalid-argument result must contain text");
+        String normalizedText = text.toLowerCase(Locale.ROOT);
+        assertTrue(normalizedText.contains("invalid") || normalizedText.contains("fail")
+                        || normalizedText.contains("error"),
+                () -> "Invalid arguments were not reported as a failure: " + text);
+        assertFalse(text.contains("CHARGED="),
+                () -> "Invalid arguments were reported as a successful side effect: " + text);
+    }
+
+    @Test
+    @Timeout(60)
     void shouldNotInvokeRegisteredToolForUnknownToolRequest() {
         AddNumbers addNumbers = new AddNumbers();
         SendNotification sendNotification = new SendNotification();
@@ -290,6 +366,45 @@ class ToolCallingIT extends E2eTestSupport {
         public String fail() {
             invocationCount.incrementAndGet();
             throw new IllegalStateException("controlled tool failure");
+        }
+    }
+
+    enum ReleaseChannel {
+        CANARY,
+        STABLE
+    }
+
+    static final class ComplexArgumentsTool {
+        private final AtomicInteger invocationCount = new AtomicInteger();
+        private String lastNote;
+        private boolean lastUrgent;
+        private ReleaseChannel lastChannel;
+        private int lastRetryLimit;
+        private String lastResult;
+
+        @Tool(name = "format_release", description = "Formats all supplied release fields.")
+        public String format(
+                @ToolParam(name = "note") String note,
+                @ToolParam(name = "urgent") boolean urgent,
+                @ToolParam(name = "channel") ReleaseChannel channel,
+                @ToolParam(name = "retry_limit") int retryLimit) {
+            invocationCount.incrementAndGet();
+            lastNote = note;
+            lastUrgent = urgent;
+            lastChannel = channel;
+            lastRetryLimit = retryLimit;
+            lastResult = "FORMATTED=" + note + "|" + urgent + "|" + channel + "|" + retryLimit;
+            return lastResult;
+        }
+    }
+
+    static final class SideEffectingChargeTool {
+        private final AtomicInteger invocationCount = new AtomicInteger();
+
+        @Tool(name = "charge_account", description = "Charges a whole-number amount to the account.")
+        public String charge(@ToolParam(name = "amount") int amount) {
+            invocationCount.incrementAndGet();
+            return "CHARGED=" + amount;
         }
     }
 
