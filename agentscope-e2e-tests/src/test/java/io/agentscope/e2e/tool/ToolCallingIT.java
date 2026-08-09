@@ -171,7 +171,8 @@ class ToolCallingIT extends E2eTestSupport {
                 "tool-chain-e2e-agent",
                 "Complete the requested two-step workflow. Call create_code exactly once, then "
                         + "call confirm_code exactly once using the exact value returned by "
-                        + "create_code. Reply only with the exact confirm_code result.",
+                        + "create_code. The returned code is opaque: copy it exactly and do not "
+                        + "invent or transform it. Reply only with the exact confirm_code result.",
                 tools);
 
         Msg result = agent.call(List.of(new UserMessage(
@@ -358,7 +359,9 @@ class ToolCallingIT extends E2eTestSupport {
         public String create(@ToolParam(name = "seed") String seed) {
             createCount.incrementAndGet();
             invocations.add("create:" + seed);
-            createdCode = "CODE-" + UUID.randomUUID();
+            createdCode = "C" + UUID.randomUUID().toString()
+                    .substring(0, 4)
+                    .toUpperCase(Locale.ROOT);
             return createdCode;
         }
 
