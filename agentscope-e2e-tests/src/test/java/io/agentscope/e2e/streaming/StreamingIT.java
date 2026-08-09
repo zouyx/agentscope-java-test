@@ -89,8 +89,10 @@ class StreamingIT extends E2eTestSupport {
                 .block(CALL_TIMEOUT);
 
         assertNotNull(events, "stream must complete with observable events");
-        assertTrue(events.stream().anyMatch(this::hasTextDelta),
-                "streaming must emit a non-empty text delta event");
+        long textDeltaCount = events.stream().filter(this::hasTextDelta).count();
+        assertTrue(textDeltaCount > 1,
+                () -> "streaming must emit multiple non-empty text delta events, but emitted "
+                        + textDeltaCount);
         assertTrue(firstIncrementalEventAt.get() > 0,
                 "first incremental text event timestamp was not recorded");
         assertTrue(completionAt.get() > firstIncrementalEventAt.get(),
