@@ -163,16 +163,17 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(120)
+    @Timeout(90)
     void shouldUseFirstToolResultAsSecondToolArgument() {
         String seed = uniqueToken();
         ChainedTools tools = new ChainedTools();
-        ReActAgent agent = createToolAgent(
+        ReActAgent agent = createToolAgentWithMaxIters(
                 "tool-chain-e2e-agent",
                 "Complete the requested two-step workflow. Call create_code exactly once, then "
                         + "call confirm_code exactly once using the exact value returned by "
                         + "create_code. The returned code is opaque: copy it exactly and do not "
                         + "invent or transform it. Reply only with the exact confirm_code result.",
+                3,
                 tools);
 
         Msg result = agent.call(List.of(new UserMessage(
@@ -244,6 +245,21 @@ class ToolCallingIT extends E2eTestSupport {
                 .sysPrompt(sysPrompt)
                 .model(MODEL_ID)
                 .toolkit(toolkit)
+                .build();
+    }
+
+    private ReActAgent createToolAgentWithMaxIters(
+            String name, String sysPrompt, int maxIters, Object... tools) {
+        Toolkit toolkit = new Toolkit();
+        for (Object tool : tools) {
+            toolkit.registerTool(tool);
+        }
+        return ReActAgent.builder()
+                .name(name)
+                .sysPrompt(sysPrompt)
+                .model(MODEL_ID)
+                .toolkit(toolkit)
+                .maxIters(maxIters)
                 .build();
     }
 
