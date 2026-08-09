@@ -7,8 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
+import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Tool;
+import io.agentscope.core.tool.ToolCallParam;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.e2e.support.E2eTestSupport;
@@ -16,6 +20,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -171,14 +176,16 @@ class ToolCallingIT extends E2eTestSupport {
                 "tool-chain-e2e-agent",
                 "Complete the requested two-step workflow. Call create_code exactly once, then "
                         + "call confirm_code exactly once using the exact value returned by "
-                        + "create_code. The returned code is opaque: copy it exactly and do not "
-                        + "invent or transform it. Reply only with the exact confirm_code result.",
+                        + "create_code. Its result starts with CHAIN-CODE-. Copy that complete "
+                        + "result into confirm_code.code; never invent, infer, hash, or transform "
+                        + "a code. Reply only with the exact confirm_code result.",
                 3,
                 tools);
 
         Msg result = agent.call(List.of(new UserMessage(
-                        "First call create_code with seed=\"" + seed + "\". Then pass its exact "
-                                + "return value to confirm_code as code.")))
+                        "First call create_code with seed=\"" + seed + "\". Wait for its tool "
+                                + "result, then copy the complete CHAIN-CODE- value verbatim into "
+                                + "confirm_code.code. Do not generate the code yourself.")))
                 .block();
 
         assertNotNull(result, "tool-chain call must emit a result");
@@ -202,6 +209,76 @@ class ToolCallingIT extends E2eTestSupport {
         String normalizedReply = normalizeProtocolReply(text).replace("\\\"", "\"");
         assertEquals("CONFIRMED=" + generatedCode, normalizedReply,
                 () -> "Unexpected tool-chain result: " + text);
+    }
+
+    @Test
+    @Timeout(120)
+    void shouldBindComplexJavaToolArguments() {
+        String note = "发布 \"北极星\" release " + uniqueToken();
+        String escapedNote = note.replace("\\", "\\\\").replace("\"", "\\\"");
+        ComplexArgumentsTool tool = new ComplexArgumentsTool();
+        ReActAgent agent = createToolAgent(
+                "complex-tool-arguments-e2e-agent",
+                "You must call format_release exactly once with every value supplied by the "
+                        + "user. Preserve strings character for character. After it succeeds, "
+                        + "reply only with the exact value returned by the tool.",
+                tool);
+
+        Msg result = agent.call(List.of(new UserMessage("""
+                        Call format_release exactly once with note="%s", urgent=true,
+                        channel=CANARY, and retry_limit=-1. Return its exact result.
+                        """.formatted(escapedNote))))
+                .block();
+
+        assertNotNull(result, "complex-argument tool call must emit a result");
+        assertEquals(1, tool.invocationCount.get(), "format_release must be invoked exactly once");
+        String singleQuotedNote = note.replace('"', '\'');
+        String normalizedNote = normalizeToolArgument(tool.lastNote);
+        assertTrue(normalizedNote.equals(note) || normalizedNote.equals(singleQuotedNote),
+                () -> "Unicode, spaces, and quotes must be preserved: " + tool.lastNote);
+        assertTrue(tool.lastUrgent, "boolean argument must be bound as true");
+        assertEquals(ReleaseChannel.CANARY, tool.lastChannel, "enum argument must be bound");
+        assertEquals(-1, tool.lastRetryLimit, "negative numeric argument must be bound");
+        String text = result.getTextContent();
+        assertNotNull(text, "complex-argument result must contain text");
+        assertFalse(text.isBlank(), "complex-argument result text must not be blank");
+        assertEquals(tool.lastResult, normalizeEscapedProtocolReply(text),
+                () -> "Agent did not return the tool's exact business result: " + text);
+    }
+
+    @Test
+    @Timeout(30)
+    void shouldRejectInvalidToolArgumentsWithoutExecutingSideEffect() {
+        SideEffectingChargeTool tool = new SideEffectingChargeTool();
+        Toolkit toolkit = new Toolkit();
+        toolkit.registerTool(tool);
+        Map<String, Object> invalidInput = Map.of("amount", "not-a-number");
+        ToolUseBlock toolUse = ToolUseBlock.builder()
+                .id("invalid-charge")
+                .name("charge_account")
+                .input(invalidInput)
+                .content("{\"amount\":\"not-a-number\"}")
+                .build();
+
+        ToolResultBlock result = toolkit.callTool(ToolCallParam.builder()
+                        .toolUseBlock(toolUse)
+                        .input(invalidInput)
+                        .build())
+                .block();
+
+        assertEquals(0, tool.invocationCount.get(),
+                "invalid arguments must be rejected before a side effect executes");
+        assertNotNull(result, "invalid tool arguments must produce a diagnostic result");
+        String diagnostic = result.getOutput().stream()
+                .filter(TextBlock.class::isInstance)
+                .map(TextBlock.class::cast)
+                .map(TextBlock::getText)
+                .reduce("", String::concat)
+                .toLowerCase(Locale.ROOT);
+        assertTrue(diagnostic.contains("validation") || diagnostic.contains("integer"),
+                () -> "Invalid argument failure was not diagnosable: " + diagnostic);
+        assertFalse(diagnostic.contains("charged="),
+                () -> "Invalid arguments were reported as a successful side effect: " + diagnostic);
     }
 
     @Test
@@ -307,6 +384,14 @@ class ToolCallingIT extends E2eTestSupport {
         return trimmed;
     }
 
+    private String normalizeEscapedProtocolReply(String reply) {
+        return normalizeProtocolReply(reply).replace("\\\"", "\"");
+    }
+
+    private String normalizeToolArgument(String value) {
+        return value.strip().replace("\\\"", "\"");
+    }
+
     private <T> List<T> runConcurrently(List<? extends Callable<T>> calls, Duration timeout)
             throws Exception {
         ExecutorService executor = Executors.newFixedThreadPool(calls.size());
@@ -369,21 +454,63 @@ class ToolCallingIT extends E2eTestSupport {
         private final ConcurrentLinkedQueue<String> invocations = new ConcurrentLinkedQueue<>();
         private String createdCode;
 
-        @Tool(name = "create_code", description = "Creates a code from the supplied seed.")
+        @Tool(name = "create_code", description = "Returns a new opaque CHAIN-CODE- value.")
         public String create(@ToolParam(name = "seed") String seed) {
             createCount.incrementAndGet();
             invocations.add("create:" + seed);
-            createdCode = "C" + UUID.randomUUID().toString()
-                    .substring(0, 4)
+            createdCode = "CHAIN-CODE-" + UUID.randomUUID().toString()
+                    .substring(0, 8)
                     .toUpperCase(Locale.ROOT);
             return createdCode;
         }
 
-        @Tool(name = "confirm_code", description = "Confirms a code created by create_code.")
-        public String confirm(@ToolParam(name = "code") String code) {
+        @Tool(name = "confirm_code", description = "Confirms the exact result from create_code.")
+        public String confirm(@ToolParam(
+                name = "code",
+                description = "Complete CHAIN-CODE- string returned by create_code; copy verbatim.")
+                String code) {
             confirmCount.incrementAndGet();
             invocations.add("confirm:" + code);
             return "CONFIRMED=" + code;
+        }
+    }
+
+    enum ReleaseChannel {
+        CANARY,
+        STABLE
+    }
+
+    static final class ComplexArgumentsTool {
+        private final AtomicInteger invocationCount = new AtomicInteger();
+        private String lastNote;
+        private boolean lastUrgent;
+        private ReleaseChannel lastChannel;
+        private int lastRetryLimit;
+        private String lastResult;
+
+        @Tool(name = "format_release", description = "Formats all supplied release fields.")
+        public String format(
+                @ToolParam(name = "note") String note,
+                @ToolParam(name = "urgent") boolean urgent,
+                @ToolParam(name = "channel") ReleaseChannel channel,
+                @ToolParam(name = "retry_limit") int retryLimit) {
+            invocationCount.incrementAndGet();
+            lastNote = note;
+            lastUrgent = urgent;
+            lastChannel = channel;
+            lastRetryLimit = retryLimit;
+            lastResult = "FORMATTED=" + note + "|" + urgent + "|" + channel + "|" + retryLimit;
+            return lastResult;
+        }
+    }
+
+    static final class SideEffectingChargeTool {
+        private final AtomicInteger invocationCount = new AtomicInteger();
+
+        @Tool(name = "charge_account", description = "Charges a whole-number amount to the account.")
+        public String charge(@ToolParam(name = "amount") int amount) {
+            invocationCount.incrementAndGet();
+            return "CHARGED=" + amount;
         }
     }
 
