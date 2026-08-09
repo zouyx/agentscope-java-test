@@ -175,7 +175,7 @@ class ToolCallingIT extends E2eTestSupport {
         ChainedTools tools = new ChainedTools();
         ReActAgent agent = createToolAgentWithMaxIters(
                 "tool-chain-e2e-agent",
-                "/no_think\nComplete the requested two-step workflow. Call create_code exactly once, then "
+                "Complete the requested two-step workflow. Call create_code exactly once, then "
                         + "call confirm_code exactly once using the exact value returned by "
                         + "create_code. Its result starts with CHAIN-CODE-. Copy that complete "
                         + "result into confirm_code.code; never invent, infer, hash, or transform "
@@ -184,7 +184,7 @@ class ToolCallingIT extends E2eTestSupport {
                 tools);
 
         Msg result = agent.call(List.of(new UserMessage(
-                        "/no_think\nFirst call create_code with seed=\"" + seed + "\". Wait for its tool "
+                        "First call create_code with seed=\"" + seed + "\". Wait for its tool "
                                 + "result, then copy the complete CHAIN-CODE- value verbatim into "
                                 + "confirm_code.code. Do not generate the code yourself.")))
                 .block();
@@ -339,6 +339,7 @@ class ToolCallingIT extends E2eTestSupport {
                 .generateOptions(GenerateOptions.builder()
                         .temperature(0.0)
                         .maxTokens(256)
+                        .additionalBodyParam("think", false)
                         .build())
                 .build();
     }
