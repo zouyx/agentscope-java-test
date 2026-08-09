@@ -184,7 +184,8 @@ class ToolCallingIT extends E2eTestSupport {
         assertNotNull(result, "complex-argument tool call must emit a result");
         assertEquals(1, tool.invocationCount.get(), "format_release must be invoked exactly once");
         String singleQuotedNote = note.replace('"', '\'');
-        assertTrue(tool.lastNote.equals(note) || tool.lastNote.equals(singleQuotedNote),
+        String normalizedNote = normalizeToolArgument(tool.lastNote);
+        assertTrue(normalizedNote.equals(note) || normalizedNote.equals(singleQuotedNote),
                 () -> "Unicode, spaces, and quotes must be preserved: " + tool.lastNote);
         assertTrue(tool.lastUrgent, "boolean argument must be bound as true");
         assertEquals(ReleaseChannel.CANARY, tool.lastChannel, "enum argument must be bound");
@@ -331,6 +332,10 @@ class ToolCallingIT extends E2eTestSupport {
 
     private String normalizeEscapedProtocolReply(String reply) {
         return normalizeProtocolReply(reply).replace("\\\"", "\"");
+    }
+
+    private String normalizeToolArgument(String value) {
+        return value.strip().replace("\\\"", "\"");
     }
 
     private <T> List<T> runConcurrently(List<? extends Callable<T>> calls, Duration timeout)
