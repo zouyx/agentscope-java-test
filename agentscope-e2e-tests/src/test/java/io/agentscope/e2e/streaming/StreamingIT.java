@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.ModelCallStartEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
@@ -109,12 +110,14 @@ class StreamingIT extends E2eTestSupport {
         List<AgentEvent> firstEvents = agent.streamEvents(
                         List.of(new UserMessage("Reply with " + marker + " exactly 50 times.")))
                 .doOnCancel(() -> upstreamCancelled.set(true))
+                .filter(ModelCallStartEvent.class::isInstance)
                 .take(1)
                 .collectList()
                 .block(CALL_TIMEOUT);
 
-        assertNotNull(firstEvents, "cancellation test must observe the first stream event");
-        assertEquals(1, firstEvents.size(), "subscriber must receive exactly one event before cancellation");
+        assertNotNull(firstEvents, "cancellation test must observe model execution starting");
+        assertEquals(1, firstEvents.size(),
+                "subscriber must receive exactly one model-start event before cancellation");
         assertTrue(upstreamCancelled.get(), "taking one event must cancel the upstream stream");
 
         Msg followUp = agent.call(List.of(new UserMessage("Reply only FOLLOWUP_OK."))).block(CALL_TIMEOUT);
