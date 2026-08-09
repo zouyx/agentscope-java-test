@@ -192,7 +192,7 @@ class ToolCallingIT extends E2eTestSupport {
         String text = result.getTextContent();
         assertNotNull(text, "complex-argument result must contain text");
         assertFalse(text.isBlank(), "complex-argument result text must not be blank");
-        assertEquals(tool.lastResult, normalizeProtocolReply(text),
+        assertEquals(tool.lastResult, normalizeEscapedProtocolReply(text),
                 () -> "Agent did not return the tool's exact business result: " + text);
     }
 
@@ -327,6 +327,10 @@ class ToolCallingIT extends E2eTestSupport {
             return trimmed.substring(1, trimmed.length() - 1);
         }
         return trimmed;
+    }
+
+    private String normalizeEscapedProtocolReply(String reply) {
+        return normalizeProtocolReply(reply).replace("\\\"", "\"");
     }
 
     private <T> List<T> runConcurrently(List<? extends Callable<T>> calls, Duration timeout)
