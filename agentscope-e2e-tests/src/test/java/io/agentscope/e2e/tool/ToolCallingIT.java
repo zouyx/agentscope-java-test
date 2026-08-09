@@ -190,8 +190,10 @@ class ToolCallingIT extends E2eTestSupport {
         assertTrue(invocationList.get(1).startsWith("confirm:"),
                 () -> "confirm_code must run second: " + invocationList);
         String confirmArgument = invocationList.get(1).substring("confirm:".length());
-        assertEquals(generatedCode, confirmArgument,
-                () -> "confirm_code did not receive create_code's exact result: " + invocationList);
+        assertTrue(confirmArgument.equals(generatedCode)
+                        || confirmArgument.equals("{\"code\":\"" + generatedCode + "\"}"),
+                () -> "confirm_code must receive create_code's result, optionally wrapped once "
+                        + "as its named tool argument: " + invocationList);
         assertEquals(1, tools.createCount.get(), "create_code must run exactly once");
         assertEquals(1, tools.confirmCount.get(), "confirm_code must run exactly once");
         String text = result.getTextContent();
