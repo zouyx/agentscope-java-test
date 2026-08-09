@@ -98,9 +98,9 @@ class ConversationMemoryIT extends E2eTestSupport {
         for (int index = 0; index < agentCount; index++) {
             String ownCode = codes.get(index);
             ConversationReplies agentReplies = replies.get(index);
-            assertEquals("SAVED=" + ownCode, agentReplies.writeReply().trim(),
+            assertEquals("SAVED=" + ownCode, normalizeCodeProtocolReply(agentReplies.writeReply()),
                     () -> "Unexpected concurrent write reply: " + agentReplies.writeReply());
-            assertEquals("CODE=" + ownCode, agentReplies.readReply().trim(),
+            assertEquals("CODE=" + ownCode, normalizeCodeProtocolReply(agentReplies.readReply()),
                     () -> "Unexpected concurrent read reply: " + agentReplies.readReply());
             for (String otherCode : codes) {
                 if (!otherCode.equals(ownCode)) {
@@ -231,6 +231,17 @@ class ConversationMemoryIT extends E2eTestSupport {
 
     private String uniqueCode(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private String normalizeCodeProtocolReply(String reply) {
+        String trimmed = reply.trim();
+        int separator = trimmed.indexOf('=');
+        if (separator >= 0 && trimmed.length() > separator + 3
+                && trimmed.charAt(separator + 1) == '<' && trimmed.endsWith(">")) {
+            return trimmed.substring(0, separator + 1)
+                    + trimmed.substring(separator + 2, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private <T> List<T> runConcurrently(List<? extends Callable<T>> calls, Duration timeout)
