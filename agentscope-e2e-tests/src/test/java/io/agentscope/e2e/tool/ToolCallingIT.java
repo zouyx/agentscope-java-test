@@ -190,19 +190,15 @@ class ToolCallingIT extends E2eTestSupport {
         assertTrue(invocationList.get(1).startsWith("confirm:"),
                 () -> "confirm_code must run second: " + invocationList);
         String confirmArgument = invocationList.get(1).substring("confirm:".length());
-        String jsonGeneratedCode = "{\"code\":\"" + generatedCode + "\"}";
-        assertTrue(confirmArgument.equals(generatedCode)
-                        || confirmArgument.equals(jsonGeneratedCode),
-                () -> "confirm_code did not receive create_code's result: " + invocationList);
+        assertEquals(generatedCode, confirmArgument,
+                () -> "confirm_code did not receive create_code's exact result: " + invocationList);
         assertEquals(1, tools.createCount.get(), "create_code must run exactly once");
         assertEquals(1, tools.confirmCount.get(), "confirm_code must run exactly once");
         String text = result.getTextContent();
         assertNotNull(text, "tool-chain result must contain text");
         assertFalse(text.isBlank(), "tool-chain result text must not be blank");
         String normalizedReply = normalizeProtocolReply(text).replace("\\\"", "\"");
-        assertTrue(normalizedReply.equals("CONFIRMED=" + confirmArgument)
-                        || normalizedReply.equals("CONFIRMED=" + generatedCode)
-                        || normalizedReply.equals("CONFIRMED=" + jsonGeneratedCode),
+        assertEquals("CONFIRMED=" + generatedCode, normalizedReply,
                 () -> "Unexpected tool-chain result: " + text);
     }
 
