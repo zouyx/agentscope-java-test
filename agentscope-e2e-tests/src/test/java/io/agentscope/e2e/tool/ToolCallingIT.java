@@ -166,6 +166,7 @@ class ToolCallingIT extends E2eTestSupport {
     @Timeout(120)
     void shouldBindComplexJavaToolArguments() {
         String note = "发布 \"北极星\" release " + uniqueToken();
+        String escapedNote = note.replace("\\", "\\\\").replace("\"", "\\\"");
         ComplexArgumentsTool tool = new ComplexArgumentsTool();
         ReActAgent agent = createToolAgent(
                 "complex-tool-arguments-e2e-agent",
@@ -175,9 +176,9 @@ class ToolCallingIT extends E2eTestSupport {
                 tool);
 
         Msg result = agent.call(List.of(new UserMessage("""
-                        Call format_release exactly once with note=%s, urgent=true,
+                        Call format_release exactly once with note="%s", urgent=true,
                         channel=CANARY, and retry_limit=-1. Return its exact result.
-                        """.formatted(note))))
+                        """.formatted(escapedNote))))
                 .block();
 
         assertNotNull(result, "complex-argument tool call must emit a result");
@@ -191,8 +192,8 @@ class ToolCallingIT extends E2eTestSupport {
         String text = result.getTextContent();
         assertNotNull(text, "complex-argument result must contain text");
         assertFalse(text.isBlank(), "complex-argument result text must not be blank");
-        assertTrue(text.contains(tool.lastResult),
-                () -> "Agent did not return the tool's business result: " + text);
+        assertEquals(tool.lastResult, normalizeProtocolReply(text),
+                () -> "Agent did not return the tool's exact business result: " + text);
     }
 
     @Test
