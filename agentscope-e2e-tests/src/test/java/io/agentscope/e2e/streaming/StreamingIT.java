@@ -106,7 +106,6 @@ class StreamingIT extends E2eTestSupport {
 
         List<AgentEvent> firstEvents = agent.streamEvents(
                         List.of(new UserMessage("Reply with " + marker + " exactly 50 times.")))
-                .filter(this::hasTextDelta)
                 .doOnCancel(() -> upstreamCancelled.set(true))
                 .take(1)
                 .collectList()
