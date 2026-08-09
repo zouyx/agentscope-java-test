@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.e2e.support.E2eTestSupport;
@@ -116,24 +117,40 @@ class ConversationMemoryIT extends E2eTestSupport {
 
     @Test
     @Timeout(60)
-    void shouldForgetFactAfterConversationReset() {
+    void shouldForgetContextAfterPublicSessionReset() {
         String code = uniqueCode("ORBIT");
-        ReActAgent originalAgent = createMemoryAgent("reset-agent-before");
+        String replacementCode = uniqueCode("NOVA");
+        String userId = "reset-user-" + UUID.randomUUID();
+        RuntimeContext originalSession = RuntimeContext.builder()
+                .userId(userId)
+                .sessionId("reset-before-" + UUID.randomUUID())
+                .build();
+        RuntimeContext resetSession = RuntimeContext.builder()
+                .userId(userId)
+                .sessionId("reset-after-" + UUID.randomUUID())
+                .build();
+        ReActAgent agent = createMemoryAgent("session-reset-agent");
 
-        assertText(originalAgent, "Remember that my project code is " + code + ".");
-        String beforeReset = assertText(originalAgent, "What is my current project code?");
+        assertText(agent, originalSession, "Remember that my project code is " + code + ".");
+        String beforeReset = assertText(agent, originalSession, "What is my current project code?");
         assertTrue(beforeReset.contains(code),
                 () -> "Precondition failed; code was not remembered: " + beforeReset);
 
-        // A new Agent with a new Memory represents a new conversation. This verifies the public
-        // user path without inspecting or mutating Memory internals.
-        ReActAgent resetAgent = createMemoryAgent("reset-agent-after");
-        String afterReset = assertText(resetAgent, "What is my current project code?");
+        // RuntimeContext exposes the public user/session boundary. Switching the session is the
+        // supported reset-equivalent operation without inspecting or mutating Memory internals.
+        String afterReset = assertText(agent, resetSession, "What is my current project code?");
 
         assertTrue(afterReset.contains("UNKNOWN"),
-                () -> "New conversation unexpectedly retained a code: " + afterReset);
+                () -> "Reset session unexpectedly retained a code: " + afterReset);
         assertFalse(afterReset.contains(code),
-                () -> "Old project code leaked into the new conversation: " + afterReset);
+                () -> "Old project code leaked into the reset session: " + afterReset);
+
+        assertText(agent, resetSession, "Remember that my project code is " + replacementCode + ".");
+        String recalledAfterReset = assertText(agent, resetSession, "What is my current project code?");
+        assertTrue(recalledAfterReset.contains(replacementCode),
+                () -> "Reset session did not retain its new code: " + recalledAfterReset);
+        assertFalse(recalledAfterReset.contains(code),
+                () -> "Reset session leaked the old code after writing a new one: " + recalledAfterReset);
     }
 
     @Test
@@ -206,6 +223,11 @@ class ConversationMemoryIT extends E2eTestSupport {
         }
         return assertText(agent, "Restate the saved project code exactly as CODE=" + code
                 + ". Do not use a placeholder such as <current code>.");
+    }
+
+    private String assertText(ReActAgent agent, RuntimeContext context, String input) {
+        Msg result = agent.call(List.of(new UserMessage(input)), context).block(CALL_TIMEOUT);
+        return assertText(result);
     }
 
     private String assertText(Msg result) {
