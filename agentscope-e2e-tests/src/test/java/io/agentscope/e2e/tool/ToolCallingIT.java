@@ -124,8 +124,8 @@ class ToolCallingIT extends E2eTestSupport {
     }
 
     @Test
-    @Timeout(120)
-    void shouldReportToolFailureWithoutClaimingSuccess() {
+    @Timeout(60)
+    void shouldNotRetryFailedSideEffectingToolByDefault() {
         FailingOperation failingOperation = new FailingOperation();
         ReActAgent agent = createToolAgent(
                 "tool-failure-e2e-agent",
@@ -144,8 +144,8 @@ class ToolCallingIT extends E2eTestSupport {
             failure = error;
         }
 
-        assertTrue(failingOperation.invocationCount.get() >= 1,
-                "the requested failing tool operation must be invoked");
+        assertEquals(1, failingOperation.invocationCount.get(),
+                "a failed side-effecting tool must not be retried by default");
         if (failure != null) {
             assertTrue(hasMessageInCauseChain(failure, "controlled tool failure"),
                     "Unexpected propagated tool failure: " + failure);
