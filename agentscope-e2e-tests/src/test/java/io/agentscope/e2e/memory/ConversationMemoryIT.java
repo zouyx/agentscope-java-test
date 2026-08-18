@@ -27,15 +27,20 @@ class ConversationMemoryIT extends E2eTestSupport {
     private static final String MEMORY_PROMPT = """
             You are testing conversation memory. Follow these rules exactly:
             - Remember project codes supplied by the user during this conversation.
-            - When asked for the current project code, reply only CODE=<current code>.
+            - When asked for the current project code, reply only with CODE= followed immediately
+              by the exact project code the user supplied. Do not write angle brackets,
+              placeholders, or any extra text.
             - If no project code was supplied in this conversation, reply only UNKNOWN.
             - A newer project code replaces an older project code.
             """;
     private static final String CONCURRENT_MEMORY_PROMPT = """
             You are testing concurrent conversation memory. Follow these rules exactly:
             - Remember project codes supplied by the user during this conversation.
-            - When supplied a project code, reply only SAVED=<supplied code>.
-            - When asked for the current project code, reply only CODE=<current code>.
+            - When supplied a project code, reply only with SAVED= followed immediately by that
+              exact code. Do not add any extra text.
+            - When asked for the current project code, reply only with CODE= followed immediately
+              by the exact project code the user supplied. Do not write angle brackets,
+              placeholders, or any extra text.
             - If no project code was supplied in this conversation, reply only UNKNOWN.
             """;
 
@@ -63,7 +68,7 @@ class ConversationMemoryIT extends E2eTestSupport {
         String agentBReply = assertText(agentB, "What is my current project code?");
         String agentAReply = assertText(agentA, "What is my current project code?");
 
-        assertTrue(agentBReply.contains("UNKNOWN"),
+        assertEquals("UNKNOWN", agentBReply.trim(),
                 () -> "Independent agent unexpectedly knew a code: " + agentBReply);
         assertFalse(agentBReply.contains(code),
                 () -> "Project code leaked to an independent agent: " + agentBReply);
@@ -140,7 +145,7 @@ class ConversationMemoryIT extends E2eTestSupport {
         // supported reset-equivalent operation without inspecting or mutating Memory internals.
         String afterReset = assertText(agent, resetSession, "What is my current project code?");
 
-        assertTrue(afterReset.contains("UNKNOWN"),
+        assertEquals("UNKNOWN", afterReset.trim(),
                 () -> "Reset session unexpectedly retained a code: " + afterReset);
         assertFalse(afterReset.contains(code),
                 () -> "Old project code leaked into the reset session: " + afterReset);
